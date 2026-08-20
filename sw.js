@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mh-stock-v25';
+const CACHE_NAME = 'mh-stock-v26';
 const ASSETS = [
   './',
   './index.html',

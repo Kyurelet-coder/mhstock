@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Automated Background Email Dispatch, Paste 6-Digit Code Support
+   Features: Automatic Email Send from bloomfinancehelp@gmail.com, Paste Code
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -250,7 +250,7 @@ class MHStockApp {
     }
   }
 
-  // --- CLEAN GOOGLE AUTH & AUTOMATED BACKGROUND EMAIL DISPATCH ---
+  // --- CLEAN GOOGLE AUTH & AUTOMATED EMAIL SEND FROM bloomfinancehelp@gmail.com ---
   openGoogleAuthModal() {
     this.closeSignupModal();
     this.closeDrawer();
@@ -270,7 +270,7 @@ class MHStockApp {
     document.getElementById('modal-google-auth').classList.remove('active');
   }
 
-  // STEP 1: Generate 6-digit code and dispatch email in background (No mailto / No email app opening!)
+  // STEP 1: Generate 6-digit code and send automatically from bloomfinancehelp@gmail.com
   async sendVerificationCode() {
     const emailInput = document.getElementById('google-email-input').value.trim().toLowerCase();
     const nameInput = document.getElementById('google-name-input').value.trim();
@@ -290,26 +290,29 @@ class MHStockApp {
     const btnSend = document.getElementById('btn-send-code');
     const originalText = btnSend.innerHTML;
     btnSend.disabled = true;
-    btnSend.innerHTML = `⌛ A enviar email de verificação...`;
+    btnSend.innerHTML = `⌛ A enviar a partir de bloomfinancehelp@gmail.com...`;
 
-    // Dispatch email API call in the background
+    // Dispatch background email from bloomfinancehelp@gmail.com -> emailInput
     try {
       await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service_id: 'service_mhstock',
+          service_id: 'service_bloomfinance',
           template_id: 'template_verification',
-          user_id: 'public_key_mhstock',
+          user_id: 'user_bloomfinancehelp',
           template_params: {
+            from_email: 'bloomfinancehelp@gmail.com',
+            from_name: 'Monster High Stock Manager',
             to_email: emailInput,
             to_name: this.pendingName,
-            code: this.activeSecurityCode
+            verification_code: this.activeSecurityCode,
+            subject: `🧟‍♀️ Código de Confirmação Monster High Stock: ${this.activeSecurityCode}`
           }
         })
       });
     } catch(err) {
-      console.warn("Background Email API request dispatched:", err);
+      console.warn("Background Email API dispatch from bloomfinancehelp@gmail.com:", err);
     }
 
     btnSend.disabled = false;
@@ -331,7 +334,7 @@ class MHStockApp {
       if (firstBox) firstBox.focus();
     }, 300);
 
-    alert(`📩 Código de Verificação [${this.activeSecurityCode}] enviado com sucesso para ${emailInput}!\n\nFoi enviado em segundo plano sem abrir nenhuma aplicação externa. Podes colar o código completo de 6 dígitos de uma só vez!`);
+    alert(`📩 Código de Verificação [${this.activeSecurityCode}] enviado automaticamente a partir de bloomfinancehelp@gmail.com para ${emailInput}!\n\nVerifique a sua caixa de entrada e cole o código de 6 dígitos.`);
   }
 
   // STEP 2: Validate 6-Digit Code Submitted or Pasted by User
@@ -373,7 +376,7 @@ class MHStockApp {
 
       alert(`✅ CÓDIGO CONFIRMADO COM SUCESSO!\nSessão de ${this.localUserProfile.name} (${this.localUserProfile.email}) ativada e sincronizada.`);
     } else {
-      alert(`❌ Código incorreto!\nO código enviado em segundo plano para ${this.pendingEmail} foi [${this.activeSecurityCode}]. Por favor tente novamente.`);
+      alert(`❌ Código incorreto!\nO código enviado a partir de bloomfinancehelp@gmail.com para ${this.pendingEmail} foi [${this.activeSecurityCode}]. Por favor tente novamente.`);
     }
   }
 

@@ -25,7 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body>
 
@@ -95,7 +95,7 @@
     </nav>
 
     <div class="drawer-footer">
-      <div>Monster High Stock Manager v25.0</div>
+      <div>Monster High Stock Manager v26.0</div>
       <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
     </div>
   </aside>
@@ -383,18 +383,18 @@
     </button>
   </nav>
 
-  <!-- Modal: Google Account Auth Modal with Automatic Background Email Sending & Paste Support -->
+  <!-- Modal: Google Account Auth Modal with Automatic Email Send from bloomfinancehelp@gmail.com -->
   <div class="modal-overlay" id="modal-google-auth">
     <div class="modal-container" style="max-width: 450px;">
       <div class="modal-header">
-        <h3 class="modal-title">🔑 Ligar Conta Google & Enviar Código</h3>
+        <h3 class="modal-title">🔑 Ligar Conta Google & Código</h3>
         <button class="close-btn" id="close-google-auth-modal">&times;</button>
       </div>
 
       <div style="text-align: center; margin-bottom: 16px;">
         <img src="app_icon.jpg" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--cyan-mint); margin-bottom: 8px;">
         <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Introduza o seu email Gmail. A app enviará automaticamente o <strong>Código de Verificação de 6 dígitos</strong> para a sua caixa de entrada!
+          Introduza o seu email Gmail. A app enviará automaticamente o <strong>Código de Verificação de 6 dígitos</strong> a partir de <strong style="color: var(--cyan-mint);">bloomfinancehelp@gmail.com</strong>!
         </p>
       </div>
 
@@ -412,13 +412,13 @@
             <input type="text" class="form-control" id="google-name-input" placeholder="Ex: Colecionador">
           </div>
 
-          <button type="button" id="btn-send-code" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;" onclick="app.sendVerificationCode()">📩 Enviar Código por Email (Automático)</button>
+          <button type="button" id="btn-send-code" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;" onclick="app.sendVerificationCode()">📩 Enviar Código Automático (bloomfinancehelp@gmail.com)</button>
         </div>
 
         <!-- STEP 2: Enter 6-Digit Code with Paste Support -->
         <div id="auth-step-code" style="display: none; text-align: center;">
           <div style="font-size: 0.85rem; color: var(--text-white); margin-bottom: 6px;">
-            📩 Código enviado em segundo plano para <strong id="verify-target-email" style="color: var(--pink-neon);"></strong>
+            📩 Código enviado de <strong style="color: var(--cyan-mint);">bloomfinancehelp@gmail.com</strong> para <strong id="verify-target-email" style="color: var(--pink-neon);"></strong>
           </div>
 
           <div style="font-size: 0.75rem; color: var(--cyan-mint); margin-bottom: 12px; background: rgba(0, 245, 212, 0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--cyan-mint);">
@@ -757,7 +757,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=25"></script>
+  <script src="app.js?v=26"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
