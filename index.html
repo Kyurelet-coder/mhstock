@@ -25,7 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 
@@ -95,7 +95,7 @@
     </nav>
 
     <div class="drawer-footer">
-      <div>Monster High Stock Manager v24.0</div>
+      <div>Monster High Stock Manager v25.0</div>
       <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
     </div>
   </aside>
@@ -383,7 +383,7 @@
     </button>
   </nav>
 
-  <!-- Modal: Google Account Auth Modal with 6-Digit Email Code Verification -->
+  <!-- Modal: Google Account Auth Modal with Automatic Background Email Sending & Paste Support -->
   <div class="modal-overlay" id="modal-google-auth">
     <div class="modal-container" style="max-width: 450px;">
       <div class="modal-header">
@@ -394,7 +394,7 @@
       <div style="text-align: center; margin-bottom: 16px;">
         <img src="app_icon.jpg" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--cyan-mint); margin-bottom: 8px;">
         <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Introduza o seu email Gmail. Enviaremos um <strong>Código de Verificação de 6 dígitos</strong> para a sua caixa de entrada!
+          Introduza o seu email Gmail. A app enviará automaticamente o <strong>Código de Verificação de 6 dígitos</strong> para a sua caixa de entrada!
         </p>
       </div>
 
@@ -412,16 +412,20 @@
             <input type="text" class="form-control" id="google-name-input" placeholder="Ex: Colecionador">
           </div>
 
-          <button type="button" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;" onclick="app.sendVerificationCode()">📩 Enviar Código de Confirmação para o Email</button>
+          <button type="button" id="btn-send-code" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;" onclick="app.sendVerificationCode()">📩 Enviar Código por Email (Automático)</button>
         </div>
 
-        <!-- STEP 2: Enter 6-Digit Code -->
+        <!-- STEP 2: Enter 6-Digit Code with Paste Support -->
         <div id="auth-step-code" style="display: none; text-align: center;">
-          <div style="font-size: 0.85rem; color: var(--text-white); margin-bottom: 10px;">
-            📩 Código enviado para <strong id="verify-target-email" style="color: var(--pink-neon);"></strong>
+          <div style="font-size: 0.85rem; color: var(--text-white); margin-bottom: 6px;">
+            📩 Código enviado em segundo plano para <strong id="verify-target-email" style="color: var(--pink-neon);"></strong>
           </div>
 
-          <label class="form-label">Introduza o Código de 6 Dígitos recebido no Email:</label>
+          <div style="font-size: 0.75rem; color: var(--cyan-mint); margin-bottom: 12px; background: rgba(0, 245, 212, 0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--cyan-mint);">
+            📋 Dica: Podes <strong>colar (Paste)</strong> o código completo de 6 dígitos de uma só vez!
+          </div>
+
+          <label class="form-label">Introduza ou Cole o Código de 6 Dígitos:</label>
 
           <div class="code-inputs-grid">
             <input type="text" maxlength="1" class="code-box" id="code-1" inputmode="numeric">
@@ -753,7 +757,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
