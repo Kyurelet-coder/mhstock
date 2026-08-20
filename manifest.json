@@ -9,6 +9,8 @@
   "scope": "./",
   "display": "standalone",
   "display_override": [
+    "window-controls-overlay",
+    "tabbed",
     "standalone",
     "minimal-ui",
     "browser"
@@ -19,14 +21,55 @@
   "categories": [
     "lifestyle",
     "utilities",
-    "shopping"
+    "shopping",
+    "finance"
   ],
   "iarc_rating_id": "e84b3e59-4d36-41ae-a3a0-438c903b866a",
   "prefer_related_applications": false,
   "related_applications": [],
+  "scope_extensions": [
+    {
+      "origin": "https://Kyurelet-coder.github.io"
+    }
+  ],
   "launch_handler": {
     "client_mode": "focus-existing"
   },
+  "edge_side_panel": {
+    "preferred_width": 380
+  },
+  "note_taking": {
+    "new_note_url": "./index.html?action=add"
+  },
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "name": "Monster High Stock Data",
+      "accept": {
+        "text/csv": [
+          ".csv"
+        ],
+        "application/json": [
+          ".json"
+        ]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+mhstock",
+      "url": "./index.html?doll=%s"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Adicionar Boneca ou Lote",
@@ -50,6 +93,25 @@
         {
           "src": "icon-192.png",
           "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "widgets": [
+    {
+      "name": "MH Stock Summary",
+      "short_name": "MH Summary",
+      "description": "Resumo em tempo real da Coleção Monster High",
+      "tag": "mh-stock-widget",
+      "template": "widget-template",
+      "ms_ac_template": "./widget.json",
+      "data": "./widget-data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "screenshot-mobile.png",
+          "sizes": "720x1280",
           "type": "image/png"
         }
       ]
