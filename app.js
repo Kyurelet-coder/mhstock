@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Bottom Navigation Exclusively, Local Storage, Before/After Photos
+   Features: Clean Mobile Header Greeting, Bottom Nav Only, Before/After Photos
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -99,16 +99,7 @@ class MHStockApp {
 
   applyNickname(nick) {
     const welcomeHeader = document.getElementById('header-user-welcome');
-    const quickBadge = document.getElementById('quick-user-profile-badge');
-
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${nick}!`;
-    if (quickBadge) {
-      quickBadge.innerHTML = `
-        <span style="font-size: 0.78rem; font-weight: 700; color: var(--pink-neon); background: rgba(255,0,127,0.15); padding: 5px 10px; border-radius: 14px; border: 1px solid var(--pink-neon);">
-          👤 ${nick}
-        </span>
-      `;
-    }
   }
 
   // --- LOCALSTORAGE PER DEVICE (PURE & DIRECT) ---

@@ -21,24 +21,23 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=32">
+  <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 
-  <!-- App Header with Clean Brand & Device Nickname Badge -->
+  <!-- App Header with Clean Brand & Welcome Greeting below Title -->
   <header class="app-header">
     <div class="header-left">
       <div class="brand-container">
         <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
         <div>
           <h1 class="brand-title">Monster High Stock</h1>
-          <p class="brand-sub" id="header-user-welcome">Edição Dispositivo</p>
+          <p class="brand-sub" id="header-user-welcome">👋 Olá, Utilizador!</p>
         </div>
       </div>
     </div>
     
     <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
-      <div id="quick-user-profile-badge" style="cursor: pointer;" onclick="app.openNicknameModal()" title="Clique para alterar Nickname"></div>
       <button class="btn btn-pink" id="btn-add-header" onclick="app.openAddChoiceModal()">➕ Adicionar</button>
     </div>
   </header>
@@ -614,7 +613,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=32"></script>
+  <script src="app.js?v=33"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -622,7 +621,7 @@
           registration.update();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=32').catch(err => console.log('SW error:', err));
+      navigator.serviceWorker.register('sw.js?v=33').catch(err => console.log('SW error:', err));
     }
   </script>
 </body>
