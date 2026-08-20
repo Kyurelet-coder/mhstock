@@ -21,102 +21,24 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
 
-  <!-- Hamburger Side Navigation Drawer Overlay -->
-  <div class="drawer-overlay" id="drawer-overlay"></div>
-
-  <!-- Gothic Side Navigation Drawer for Android Menu -->
-  <aside class="sidebar-drawer" id="sidebar-drawer">
-    <div class="drawer-header">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="app_icon.jpg" class="app-logo" style="width: 36px; height: 36px;">
-        <div>
-          <div style="font-weight: 800; font-size: 1rem; color: var(--pink-neon);">MH Stock Pro</div>
-          <div style="font-size: 0.72rem; color: var(--cyan-mint);">Edição Dispositivo Local</div>
-        </div>
-      </div>
-      <button class="close-btn" id="close-drawer-btn" style="font-size: 1.6rem;">&times;</button>
-    </div>
-
-    <!-- Drawer User Profile / Device Status -->
-    <div class="drawer-user-card" id="drawer-user-card">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="font-size: 0.85rem; color: var(--text-muted);">📱 Estado do Dispositivo</div>
-      </div>
-      <div style="margin-top: 8px;">
-        <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">Coleção Local</div>
-        <div style="font-size: 0.72rem; color: var(--cyan-mint);">LocalStorage Ativo & Independente 🟢</div>
-      </div>
-    </div>
-
-    <!-- Drawer Navigation Links -->
-    <nav class="drawer-nav">
-      <div class="drawer-section-title">Navegação Principal</div>
-
-      <button class="drawer-nav-item active" id="drawer-nav-stock">
-        <span class="drawer-nav-icon">🏠</span> Stock & Revenda
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-shelf">
-        <span class="drawer-nav-icon">🔮</span> Estante Virtual
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-analytics">
-        <span class="drawer-nav-icon">📊</span> Gráficos & Analytics
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-wishlist">
-        <span class="drawer-nav-icon">🎯</span> Wishlist / Caça
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-simulator">
-        <span class="drawer-nav-icon">🧮</span> Simulador
-      </button>
-
-      <div class="drawer-section-title">Gestão & Ações</div>
-
-      <button class="drawer-nav-item" id="drawer-nav-batch">
-        <span class="drawer-nav-icon">📦</span> Registar Compra em Lote
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-export">
-        <span class="drawer-nav-icon">📁</span> Exportar Dados (CSV)
-      </button>
-
-      <button class="drawer-nav-item" id="drawer-nav-reset" style="color: var(--red-accent);" onclick="app.resetDeviceStorage()">
-        <span class="drawer-nav-icon">🔄</span> Limpar / Resetar Dados
-      </button>
-    </nav>
-
-    <div class="drawer-footer">
-      <div>Monster High Stock Manager v27.0</div>
-      <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Pure LocalStorage PWA</div>
-    </div>
-  </aside>
-
-  <!-- App Header with Hamburger Button on Top Left -->
+  <!-- App Header with Clean Brand & Device Nickname Badge -->
   <header class="app-header">
     <div class="header-left">
-      <!-- 3 horizontal bars stacked icon for Android Sidebar Drawer -->
-      <button class="hamburger-btn" id="btn-hamburger-menu" aria-label="Abrir Menu Lateral">
-        <span class="bar"></span>
-        <span class="bar"></span>
-        <span class="bar"></span>
-      </button>
-
       <div class="brand-container">
         <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
         <div>
           <h1 class="brand-title">Monster High Stock</h1>
-          <p class="brand-sub">Coleção & Stock Local</p>
+          <p class="brand-sub" id="header-user-welcome">Edição Dispositivo</p>
         </div>
       </div>
     </div>
     
-    <div class="header-right">
+    <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+      <div id="quick-user-profile-badge" style="cursor: pointer;" onclick="app.openNicknameModal()" title="Clique para alterar Nickname"></div>
       <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
     </div>
   </header>
@@ -169,6 +91,7 @@
       <button class="btn btn-outline" id="tab-btn-analytics">📊 Gráficos & Analytics</button>
       <button class="btn btn-outline" id="tab-btn-wishlist">🎯 Wishlist / Caça</button>
       <button class="btn btn-outline" id="tab-btn-simulator">🧮 Simulador</button>
+      <button class="btn btn-cyan" id="tab-btn-batch" onclick="app.openBatchModal()">📦 Novo Lote</button>
     </section>
 
     <!-- SECTION 1: Stock & Inventory View (Resale & Sold Items Only) -->
@@ -366,6 +289,34 @@
       <span>Adicionar</span>
     </button>
   </nav>
+
+  <!-- Modal: First Launch Nickname Setting -->
+  <div class="modal-overlay" id="modal-nickname">
+    <div class="modal-container" style="max-width: 420px; text-align: center;">
+      <div class="modal-header" style="justify-content: center;">
+        <h3 class="modal-title">🧟‍♀️ Bem-vindo ao Monster High Stock</h3>
+      </div>
+
+      <div style="margin: 16px 0;">
+        <img src="app_icon.jpg" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--pink-neon); margin-bottom: 12px;">
+        <p style="font-size: 0.9rem; color: var(--text-white); font-weight: 600; margin-bottom: 4px;">
+          Qual é o teu Nickname neste telemóvel?
+        </p>
+        <p style="font-size: 0.78rem; color: var(--text-muted);">
+          Este nome ficará guardado exclusivamente neste dispositivo.
+        </p>
+      </div>
+
+      <form id="nickname-form">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label">O teu Nickname *</label>
+          <input type="text" class="form-control" id="nickname-input" placeholder="Ex: Colecionador" required>
+        </div>
+
+        <button type="submit" class="btn btn-pink" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">✨ Guardar Nickname & Entrar</button>
+      </form>
+    </div>
+  </div>
 
   <!-- Modal: Trading Card Instagram/TikTok Generator -->
   <div class="modal-overlay" id="modal-card">
@@ -621,7 +572,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=27"></script>
+  <script src="app.js?v=28"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));

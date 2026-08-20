@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Pure LocalStorage per Device, Zero Login Bureaucracy, Clean Reset
+   Features: Pure Local Storage, Permanent Device Nickname, Clean Tabs Nav
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -16,6 +16,7 @@ class MHStockApp {
   constructor() {
     this.dolls = [];
     this.wishlist = [];
+    this.nickname = null;
     this.currentViewMode = 'grid';
     this.currentPhotoBase64 = null;
     this.selectedCardDollId = null;
@@ -25,6 +26,7 @@ class MHStockApp {
 
   init() {
     this.loadState();
+    this.checkNickname();
     this.populateLineDropdowns();
     this.populateSimBatchDropdown();
     this.bindEvents();
@@ -32,9 +34,61 @@ class MHStockApp {
     this.updateSimulator();
   }
 
+  // --- DEVICE NICKNAME MANAGEMENT ---
+  checkNickname() {
+    const savedNick = localStorage.getItem('mh_device_nickname');
+    if (savedNick) {
+      this.nickname = savedNick;
+      this.applyNickname(savedNick);
+    } else {
+      // First time app launch on this device -> Prompt Nickname once!
+      setTimeout(() => this.openNicknameModal(), 300);
+    }
+  }
+
+  openNicknameModal() {
+    const modal = document.getElementById('modal-nickname');
+    if (modal) {
+      if (this.nickname) {
+        document.getElementById('nickname-input').value = this.nickname;
+      }
+      modal.classList.add('active');
+    }
+  }
+
+  closeNicknameModal() {
+    const modal = document.getElementById('modal-nickname');
+    if (modal) modal.classList.remove('active');
+  }
+
+  handleNicknameSubmit(e) {
+    e.preventDefault();
+    const val = document.getElementById('nickname-input').value.trim();
+    if (!val) return;
+
+    this.nickname = val;
+    localStorage.setItem('mh_device_nickname', val);
+    this.applyNickname(val);
+    this.closeNicknameModal();
+  }
+
+  applyNickname(nick) {
+    const welcomeHeader = document.getElementById('header-user-welcome');
+    const quickBadge = document.getElementById('quick-user-profile-badge');
+
+    if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${nick}!`;
+    if (quickBadge) {
+      quickBadge.innerHTML = `
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--pink-neon); background: rgba(255,0,127,0.15); padding: 5px 10px; border-radius: 14px; border: 1px solid var(--pink-neon);">
+          👤 ${nick}
+        </span>
+      `;
+    }
+  }
+
   // --- LOCALSTORAGE PER DEVICE (PURE & DIRECT) ---
   loadState() {
-    const savedDolls = localStorage.getItem('mh_stock_data_v27');
+    const savedDolls = localStorage.getItem('mh_stock_data_v28');
     if (savedDolls) {
       try { 
         this.dolls = JSON.parse(savedDolls);
@@ -47,7 +101,7 @@ class MHStockApp {
       this.saveState();
     }
 
-    const savedWish = localStorage.getItem('mh_wishlist_data_v27');
+    const savedWish = localStorage.getItem('mh_wishlist_data_v28');
     if (savedWish) {
       try { this.wishlist = JSON.parse(savedWish); } catch (e) { this.wishlist = []; }
     } else {
@@ -58,25 +112,13 @@ class MHStockApp {
 
   saveState() {
     try {
-      localStorage.setItem('mh_stock_data_v27', JSON.stringify(this.dolls));
-      localStorage.setItem('mh_wishlist_data_v27', JSON.stringify(this.wishlist));
+      localStorage.setItem('mh_stock_data_v28', JSON.stringify(this.dolls));
+      localStorage.setItem('mh_wishlist_data_v28', JSON.stringify(this.wishlist));
     } catch (e) {
       console.warn("localStorage write warning:", e);
     }
     this.populateSimBatchDropdown();
     this.render();
-  }
-
-  resetDeviceStorage() {
-    if (confirm('⚠️ Tem a certeza que pretende resetar os dados deste dispositivo?\n\nTodas as bonecas e wishlist gravadas neste telemóvel serão limpas.')) {
-      this.dolls = [];
-      this.wishlist = [];
-      localStorage.removeItem('mh_stock_data_v27');
-      localStorage.removeItem('mh_wishlist_data_v27');
-      this.saveState();
-      this.closeDrawer();
-      alert('✨ Aplicação resetada com sucesso neste dispositivo!');
-    }
   }
 
   getNextBatchId(lotName) {
@@ -133,20 +175,8 @@ class MHStockApp {
   }
 
   bindEvents() {
-    // Android Hamburger Drawer Menu Events
-    document.getElementById('btn-hamburger-menu').addEventListener('click', () => this.openDrawer());
-    document.getElementById('close-drawer-btn').addEventListener('click', () => this.closeDrawer());
-    document.getElementById('drawer-overlay').addEventListener('click', () => this.closeDrawer());
-
-    // Drawer Nav items
-    document.getElementById('drawer-nav-stock').addEventListener('click', () => { this.switchTab('stock', 'nav-stock'); this.closeDrawer(); });
-    document.getElementById('drawer-nav-shelf').addEventListener('click', () => { this.switchTab('shelf', 'nav-shelf'); this.closeDrawer(); });
-    document.getElementById('drawer-nav-analytics').addEventListener('click', () => { this.switchTab('analytics', 'nav-analytics'); this.closeDrawer(); });
-    document.getElementById('drawer-nav-wishlist').addEventListener('click', () => { this.switchTab('wishlist', 'nav-wishlist'); this.closeDrawer(); });
-    document.getElementById('drawer-nav-simulator').addEventListener('click', () => { this.switchTab('simulator'); this.closeDrawer(); });
-
-    document.getElementById('drawer-nav-batch').addEventListener('click', () => { this.openBatchModal(); this.closeDrawer(); });
-    document.getElementById('drawer-nav-export').addEventListener('click', () => { this.exportCSV(); this.closeDrawer(); });
+    // Nickname Form submit
+    document.getElementById('nickname-form').addEventListener('submit', (e) => this.handleNicknameSubmit(e));
 
     // Search and filters
     document.getElementById('search-input').addEventListener('input', () => this.render());
@@ -306,12 +336,8 @@ class MHStockApp {
 
   switchTab(tabName, navId = null) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.drawer-nav-item').forEach(el => el.classList.remove('active'));
 
     if (navId) document.getElementById(navId).classList.add('active');
-
-    const drawerNav = document.getElementById(`drawer-nav-${tabName}`);
-    if (drawerNav) drawerNav.classList.add('active');
 
     document.getElementById('section-stock-view').style.display = tabName === 'stock' ? 'block' : 'none';
     document.getElementById('section-shelf-view').style.display = tabName === 'shelf' ? 'block' : 'none';
@@ -475,7 +501,7 @@ class MHStockApp {
         <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
           <div style="font-size: 3rem; margin-bottom: 10px;">🧟‍♀️</div>
           <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-white); margin-bottom: 6px;">Nenhuma boneca registada</div>
-          <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">A aplicação está resetada e pronta para o seu dispositivo. Adicione a sua primeira boneca ou registe uma compra em lote!</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">Adicione a sua primeira boneca ou registe uma compra em lote para começar!</div>
           <button class="btn btn-pink" onclick="app.openDollModal()">➕ Adicionar Primeira Boneca</button>
         </div>
       `;
@@ -1311,29 +1337,13 @@ class MHStockApp {
     link.click();
     document.body.removeChild(link);
   }
-
-  openDrawer() {
-    document.getElementById('sidebar-drawer').classList.add('active');
-    document.getElementById('drawer-overlay').classList.add('active');
-  }
-
-  closeDrawer() {
-    document.getElementById('sidebar-drawer').classList.remove('active');
-    document.getElementById('drawer-overlay').classList.remove('active');
-  }
 }
 
 // Clear old cache keys from localStorage
 try {
+  localStorage.removeItem('mh_stock_data_v27');
   localStorage.removeItem('mh_stock_data_v16');
   localStorage.removeItem('mh_stock_data_v15');
-  localStorage.removeItem('mh_stock_data_v14');
-  localStorage.removeItem('mh_stock_data_v13');
-  localStorage.removeItem('mh_stock_data_v12');
-  localStorage.removeItem('mh_stock_data_v11');
-  localStorage.removeItem('mh_stock_data_v10');
-  localStorage.removeItem('mh_stock_data_v9');
-  localStorage.removeItem('mh_user_profile_v1');
 } catch(e) {}
 
 // Global App Instance
