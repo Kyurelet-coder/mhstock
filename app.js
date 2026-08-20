@@ -115,7 +115,7 @@ class MHStockApp {
   }
 
   loadState() {
-    const savedDolls = localStorage.getItem('mh_stock_data_v12');
+    const savedDolls = localStorage.getItem('mh_stock_data_v14');
     if (savedDolls) {
       try { 
         this.dolls = JSON.parse(savedDolls);
@@ -136,7 +136,7 @@ class MHStockApp {
   }
 
   saveState() {
-    localStorage.setItem('mh_stock_data_v12', JSON.stringify(this.dolls));
+    localStorage.setItem('mh_stock_data_v14', JSON.stringify(this.dolls));
     localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
     this.populateSimBatchDropdown();
     this.render();
@@ -425,6 +425,7 @@ class MHStockApp {
     this.renderKPIs(batchMap);
     this.renderGrid(filtered, batchMap);
     this.renderTable(filtered, batchMap);
+    this.renderVirtualShelf();
   }
 
   renderKPIs(batchMap) {
@@ -899,9 +900,10 @@ class MHStockApp {
     document.getElementById('modal-card').classList.remove('active');
   }
 
-  // --- RENDER VIRTUAL SHELF WITH INTERACTIVE CLICK & EDITING SUPPORT ---
+  // --- RENDER VIRTUAL SHELF WITH INSTANT LIVE PHOTO REFRESH ---
   renderVirtualShelf() {
     const container = document.getElementById('virtual-shelf-grid');
+    if (!container) return;
     container.innerHTML = '';
 
     const personal = this.dolls.filter(d => d.status === 'personal');
@@ -925,10 +927,12 @@ class MHStockApp {
       item.className = 'shelf-doll-item';
       item.onclick = () => this.openDollModal(d.id);
 
-      const imgSrc = d.photoUrl || 'app_icon.jpg';
+      const photoHtml = d.photoUrl 
+        ? `<img src="${d.photoUrl}" class="shelf-doll-img" alt="${d.name}">`
+        : `<div class="shelf-doll-img-placeholder">🧟‍♀️</div>`;
 
       item.innerHTML = `
-        <img src="${imgSrc}" class="shelf-doll-img" alt="${d.name}">
+        ${photoHtml}
         <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white); margin-bottom: 4px;">${d.name}</div>
         <div style="font-size: 0.75rem; color: var(--cyan-mint); font-weight: 600;">${d.line || 'Monster High'}</div>
         ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : ''}
@@ -947,7 +951,8 @@ class MHStockApp {
       container.appendChild(item);
     });
 
-    document.getElementById('shelf-cost-val').textContent = `€${totCost.toFixed(2)}`;
+    const costEl = document.getElementById('shelf-cost-val');
+    if (costEl) costEl.textContent = `€${totCost.toFixed(2)}`;
   }
 
   renderWishlist() {
@@ -1104,6 +1109,12 @@ class MHStockApp {
     const basePurchase = parseFloat(document.getElementById('form-purchase').value) || 0;
     const statusVal = document.getElementById('form-status').value;
 
+    let finalPhoto = this.currentPhotoBase64;
+    if (!finalPhoto && editId) {
+      const existing = this.dolls.find(d => d.id === editId);
+      if (existing) finalPhoto = existing.photoUrl;
+    }
+
     const dollData = {
       name: document.getElementById('form-name').value.trim(),
       character: document.getElementById('form-char').value.trim(),
@@ -1116,7 +1127,7 @@ class MHStockApp {
       batchId: document.getElementById('form-batch').value.trim() || null,
       notes: document.getElementById('form-notes').value.trim() || '',
       hairstyleDifficulty: document.getElementById('form-hairstyle').value,
-      photoUrl: this.currentPhotoBase64 || null
+      photoUrl: finalPhoto || null
     };
 
     if (editId) {
@@ -1291,6 +1302,8 @@ class MHStockApp {
 
 // Clear old cache keys from localStorage if present
 try {
+  localStorage.removeItem('mh_stock_data_v13');
+  localStorage.removeItem('mh_stock_data_v12');
   localStorage.removeItem('mh_stock_data_v11');
   localStorage.removeItem('mh_stock_data_v10');
   localStorage.removeItem('mh_stock_data_v9');
