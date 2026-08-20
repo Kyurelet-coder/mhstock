@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Pure Local Storage, Permanent Device Nickname, Clean Tabs Nav
+   Features: Pure Local Storage, Permanent Device Nickname, Dual '+' Action
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -32,6 +32,27 @@ class MHStockApp {
     this.bindEvents();
     this.render();
     this.updateSimulator();
+  }
+
+  // --- ADD '+' CHOICE MODAL (INDIVIDUAL DOLL OR BATCH PURCHASE) ---
+  openAddChoiceModal() {
+    const modal = document.getElementById('modal-add-choice');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeAddChoiceModal() {
+    const modal = document.getElementById('modal-add-choice');
+    if (modal) modal.classList.remove('active');
+  }
+
+  selectAddIndividual() {
+    this.closeAddChoiceModal();
+    this.openDollModal();
+  }
+
+  selectAddBatch() {
+    this.closeAddChoiceModal();
+    this.openBatchModal();
   }
 
   // --- DEVICE NICKNAME MANAGEMENT ---
@@ -178,6 +199,9 @@ class MHStockApp {
     // Nickname Form submit
     document.getElementById('nickname-form').addEventListener('submit', (e) => this.handleNicknameSubmit(e));
 
+    // Choice Modal Close
+    document.getElementById('close-choice-modal').addEventListener('click', () => this.closeAddChoiceModal());
+
     // Search and filters
     document.getElementById('search-input').addEventListener('input', () => this.render());
     document.getElementById('filter-status').addEventListener('change', () => this.render());
@@ -195,9 +219,7 @@ class MHStockApp {
     document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
 
     // Modals open/close
-    document.getElementById('btn-add-header').addEventListener('click', () => this.openDollModal());
     document.getElementById('close-doll-modal').addEventListener('click', () => this.closeDollModal());
-    
     document.getElementById('close-batch-modal').addEventListener('click', () => this.closeBatchModal());
     document.getElementById('close-sell-modal').addEventListener('click', () => this.closeSellModal());
     document.getElementById('close-wishlist-modal').addEventListener('click', () => this.closeWishlistModal());
@@ -243,7 +265,6 @@ class MHStockApp {
     document.getElementById('nav-shelf').addEventListener('click', () => this.switchTab('shelf', 'nav-shelf'));
     document.getElementById('nav-analytics').addEventListener('click', () => this.switchTab('analytics', 'nav-analytics'));
     document.getElementById('nav-wishlist').addEventListener('click', () => this.switchTab('wishlist', 'nav-wishlist'));
-    document.getElementById('nav-add').addEventListener('click', () => this.openDollModal());
   }
 
   // --- AUTOMATIC CANVAS COMPRESSION FOR ULTRA-FAST BASE64 STORAGE ---
@@ -502,7 +523,7 @@ class MHStockApp {
           <div style="font-size: 3rem; margin-bottom: 10px;">🧟‍♀️</div>
           <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-white); margin-bottom: 6px;">Nenhuma boneca registada</div>
           <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">Adicione a sua primeira boneca ou registe uma compra em lote para começar!</div>
-          <button class="btn btn-pink" onclick="app.openDollModal()">➕ Adicionar Primeira Boneca</button>
+          <button class="btn btn-pink" onclick="app.openAddChoiceModal()">➕ Adicionar Primeira Boneca ou Lote</button>
         </div>
       `;
       return;

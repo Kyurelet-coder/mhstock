@@ -21,11 +21,11 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
 
-  <!-- App Header with Clean Brand & Device Nickname Badge -->
+  <!-- App Header with Clean Brand & Device Nickname Badge (No Sidebar Drawer) -->
   <header class="app-header">
     <div class="header-left">
       <div class="brand-container">
@@ -39,7 +39,7 @@
     
     <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
       <div id="quick-user-profile-badge" style="cursor: pointer;" onclick="app.openNicknameModal()" title="Clique para alterar Nickname"></div>
-      <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
+      <button class="btn btn-pink" id="btn-add-header" onclick="app.openAddChoiceModal()">➕ Adicionar</button>
     </div>
   </header>
 
@@ -91,7 +91,7 @@
       <button class="btn btn-outline" id="tab-btn-analytics">📊 Gráficos & Analytics</button>
       <button class="btn btn-outline" id="tab-btn-wishlist">🎯 Wishlist / Caça</button>
       <button class="btn btn-outline" id="tab-btn-simulator">🧮 Simulador</button>
-      <button class="btn btn-cyan" id="tab-btn-batch" onclick="app.openBatchModal()">📦 Novo Lote</button>
+      <button class="btn btn-cyan" id="tab-btn-batch" onclick="app.openBatchModal()">📦 Registar Lote</button>
     </section>
 
     <!-- SECTION 1: Stock & Inventory View (Resale & Sold Items Only) -->
@@ -284,11 +284,39 @@
       <span>Wishlist</span>
     </button>
 
-    <button class="nav-item" id="nav-add">
+    <button class="nav-item" id="nav-add" onclick="app.openAddChoiceModal()">
       <span class="nav-icon">➕</span>
       <span>Adicionar</span>
     </button>
   </nav>
+
+  <!-- Modal: Choice Popup when clicking '+' Button (Individual Doll OR Batch Purchase) -->
+  <div class="modal-overlay" id="modal-add-choice">
+    <div class="modal-container" style="max-width: 440px; text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ O que pretende adicionar?</h3>
+        <button class="close-btn" id="close-choice-modal">&times;</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; margin: 18px 0;">
+        <button class="btn btn-pink" style="padding: 16px; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="app.selectAddIndividual()">
+          <span style="font-size: 1.4rem;">🎴</span>
+          <div style="text-align: left;">
+            <div style="font-weight: 800;">Boneca Individual</div>
+            <div style="font-size: 0.75rem; opacity: 0.9; font-weight: 400;">Adicionar 1 boneca à coleção ou revenda</div>
+          </div>
+        </button>
+
+        <button class="btn btn-cyan" style="padding: 16px; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="app.selectAddBatch()">
+          <span style="font-size: 1.4rem;">📦</span>
+          <div style="text-align: left;">
+            <div style="font-weight: 800;">Registar Compra em Lote</div>
+            <div style="font-size: 0.75rem; opacity: 0.9; font-weight: 400;">Registar lote de várias unidades e amortizar custos</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: First Launch Nickname Setting -->
   <div class="modal-overlay" id="modal-nickname">
@@ -572,7 +600,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=28"></script>
+  <script src="app.js?v=29"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
