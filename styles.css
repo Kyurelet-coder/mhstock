@@ -184,16 +184,28 @@ body {
 /* KPI Dashboard Cards Grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 992px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .kpi-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(8px);
   position: relative;
@@ -211,7 +223,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 3px;
   height: 100%;
 }
 
@@ -221,27 +233,33 @@ body {
 .kpi-card.pink::before { background: var(--pink-neon); }
 
 .kpi-title {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-value {
-  font-size: 1.45rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-white);
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .kpi-sub {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-dim);
-  margin-top: 4px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* MAIN SECTIONS: LOTES, INDIVIDUAIS, VENDIDAS */
