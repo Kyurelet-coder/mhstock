@@ -21,11 +21,11 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=33">
+  <link rel="stylesheet" href="styles.css?v=34">
 </head>
 <body>
 
-  <!-- App Header with Clean Brand & Welcome Greeting below Title -->
+  <!-- App Header with Clean Brand & Welcome Greeting below Title + Exclusive Add Button -->
   <header class="app-header">
     <div class="header-left">
       <div class="brand-container">
@@ -251,7 +251,7 @@
 
   </main>
 
-  <!-- Mobile & Desktop Navigation (Exclusively in Bottom Navigation Bar) -->
+  <!-- Bottom Navigation Bar (Navigation Only) -->
   <nav class="mobile-nav">
     <button class="nav-item active" id="nav-stock">
       <span class="nav-icon">🏠</span>
@@ -276,11 +276,6 @@
     <button class="nav-item" id="nav-simulator">
       <span class="nav-icon">🧮</span>
       <span>Simulador</span>
-    </button>
-
-    <button class="nav-item" id="nav-add" onclick="app.openAddChoiceModal()">
-      <span class="nav-icon">➕</span>
-      <span>Adicionar</span>
     </button>
   </nav>
 
@@ -613,7 +608,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=33"></script>
+  <script src="app.js?v=34"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -621,7 +616,7 @@
           registration.update();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=33').catch(err => console.log('SW error:', err));
+      navigator.serviceWorker.register('sw.js?v=34').catch(err => console.log('SW error:', err));
     }
   </script>
 </body>
