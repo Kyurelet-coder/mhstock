@@ -21,11 +21,7 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- Firebase Core & Realtime Firestore Cloud Sync -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
 </head>
 <body>
 
@@ -39,19 +35,20 @@
         <img src="app_icon.jpg" class="app-logo" style="width: 36px; height: 36px;">
         <div>
           <div style="font-weight: 800; font-size: 1rem; color: var(--pink-neon);">MH Stock Pro</div>
-          <div style="font-size: 0.72rem; color: var(--cyan-mint);">Android Edition</div>
+          <div style="font-size: 0.72rem; color: var(--cyan-mint);">Edição Dispositivo Local</div>
         </div>
       </div>
       <button class="close-btn" id="close-drawer-btn" style="font-size: 1.6rem;">&times;</button>
     </div>
 
-    <!-- User Profile Card in Drawer -->
+    <!-- Drawer User Profile / Device Status -->
     <div class="drawer-user-card" id="drawer-user-card">
       <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="font-size: 0.85rem; color: var(--text-muted);">👤 Perfil & Sessão</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">📱 Estado do Dispositivo</div>
       </div>
-      <div style="margin-top: 10px;" id="drawer-user-actions">
-        <!-- Dynamically populated with Quick 1-Tap Login or Google Profile -->
+      <div style="margin-top: 8px;">
+        <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">Coleção Local</div>
+        <div style="font-size: 0.72rem; color: var(--cyan-mint);">LocalStorage Ativo & Independente 🟢</div>
       </div>
     </div>
 
@@ -79,11 +76,7 @@
         <span class="drawer-nav-icon">🧮</span> Simulador
       </button>
 
-      <div class="drawer-section-title">Conta & Ações</div>
-
-      <button class="drawer-nav-item" id="drawer-nav-share">
-        <span class="drawer-nav-icon">👥</span> Partilhar Conta por Email
-      </button>
+      <div class="drawer-section-title">Gestão & Ações</div>
 
       <button class="drawer-nav-item" id="drawer-nav-batch">
         <span class="drawer-nav-icon">📦</span> Registar Compra em Lote
@@ -92,11 +85,15 @@
       <button class="drawer-nav-item" id="drawer-nav-export">
         <span class="drawer-nav-icon">📁</span> Exportar Dados (CSV)
       </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-reset" style="color: var(--red-accent);" onclick="app.resetDeviceStorage()">
+        <span class="drawer-nav-icon">🔄</span> Limpar / Resetar Dados
+      </button>
     </nav>
 
     <div class="drawer-footer">
-      <div>Monster High Stock Manager v26.0</div>
-      <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
+      <div>Monster High Stock Manager v27.0</div>
+      <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Pure LocalStorage PWA</div>
     </div>
   </aside>
 
@@ -114,30 +111,17 @@
         <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
         <div>
           <h1 class="brand-title">Monster High Stock</h1>
-          <p class="brand-sub" id="header-user-welcome">Android Edition</p>
+          <p class="brand-sub">Coleção & Stock Local</p>
         </div>
       </div>
     </div>
     
     <div class="header-right">
-      <div id="quick-user-profile-badge" style="display: flex; align-items: center; gap: 6px;"></div>
       <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
     </div>
   </header>
 
   <main class="container">
-    
-    <!-- User Login & Workspace Banner -->
-    <div id="auth-status-banner" style="background: rgba(255, 0, 127, 0.1); border: 1px solid var(--pink-neon); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 1.4rem;">🔑</span>
-        <div>
-          <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);" id="auth-banner-title">Sessão Ativa</div>
-          <div style="font-size: 0.78rem; color: var(--text-muted);" id="auth-banner-sub">Bem-vindo de volta! A sua coleção e stock estão prontos sem necessidade de introduzir passwords.</div>
-        </div>
-      </div>
-      <button class="btn btn-pink" id="btn-banner-login" onclick="app.openGoogleAuthModal()">🔑 Entrar com a Conta Google</button>
-    </div>
 
     <!-- KPI Summary Dashboard Cards with Total Spent & Total Received -->
     <section class="kpi-grid">
@@ -382,126 +366,6 @@
       <span>Adicionar</span>
     </button>
   </nav>
-
-  <!-- Modal: Google Account Auth Modal with Automatic Email Send from bloomfinancehelp@gmail.com -->
-  <div class="modal-overlay" id="modal-google-auth">
-    <div class="modal-container" style="max-width: 450px;">
-      <div class="modal-header">
-        <h3 class="modal-title">🔑 Ligar Conta Google & Código</h3>
-        <button class="close-btn" id="close-google-auth-modal">&times;</button>
-      </div>
-
-      <div style="text-align: center; margin-bottom: 16px;">
-        <img src="app_icon.jpg" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--cyan-mint); margin-bottom: 8px;">
-        <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Introduza o seu email Gmail. A app enviará automaticamente o <strong>Código de Verificação de 6 dígitos</strong> a partir de <strong style="color: var(--cyan-mint);">bloomfinancehelp@gmail.com</strong>!
-        </p>
-      </div>
-
-      <form id="google-auth-form">
-        
-        <!-- STEP 1: Enter Email & Request 6-digit Code -->
-        <div id="auth-step-email">
-          <div class="form-group">
-            <label class="form-label">A sua Conta Gmail / Email *</label>
-            <input type="email" class="form-control" id="google-email-input" placeholder="ex: utilizador@gmail.com" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Nome / Alcunha (Opcional)</label>
-            <input type="text" class="form-control" id="google-name-input" placeholder="Ex: Colecionador">
-          </div>
-
-          <button type="button" id="btn-send-code" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;" onclick="app.sendVerificationCode()">📩 Enviar Código Automático (bloomfinancehelp@gmail.com)</button>
-        </div>
-
-        <!-- STEP 2: Enter 6-Digit Code with Paste Support -->
-        <div id="auth-step-code" style="display: none; text-align: center;">
-          <div style="font-size: 0.85rem; color: var(--text-white); margin-bottom: 6px;">
-            📩 Código enviado de <strong style="color: var(--cyan-mint);">bloomfinancehelp@gmail.com</strong> para <strong id="verify-target-email" style="color: var(--pink-neon);"></strong>
-          </div>
-
-          <div style="font-size: 0.75rem; color: var(--cyan-mint); margin-bottom: 12px; background: rgba(0, 245, 212, 0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--cyan-mint);">
-            📋 Dica: Podes <strong>colar (Paste)</strong> o código completo de 6 dígitos de uma só vez!
-          </div>
-
-          <label class="form-label">Introduza ou Cole o Código de 6 Dígitos:</label>
-
-          <div class="code-inputs-grid">
-            <input type="text" maxlength="1" class="code-box" id="code-1" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-box" id="code-2" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-box" id="code-3" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-box" id="code-4" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-box" id="code-5" inputmode="numeric">
-            <input type="text" maxlength="1" class="code-box" id="code-6" inputmode="numeric">
-          </div>
-
-          <button type="submit" class="btn btn-pink" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">✨ Validar Código & Confirmar Sessão</button>
-          
-          <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.82rem; margin-top: 8px;" onclick="app.sendVerificationCode()">🔄 Reenviar Novo Código por Email</button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: First Time Sign Up / Quick Onboarding -->
-  <div class="modal-overlay" id="modal-signup">
-    <div class="modal-container" style="max-width: 440px;">
-      <div class="modal-header">
-        <h3 class="modal-title">🧟‍♀️ Criar Perfil de Acesso</h3>
-      </div>
-
-      <div style="text-align: center; margin-bottom: 16px;">
-        <img src="app_icon.jpg" style="width: 60px; height: 60px; border-radius: 12px; border: 2px solid var(--pink-neon); margin-bottom: 8px;">
-        <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Crie o seu perfil uma única vez. Da próxima vez que abrir a app, o seu perfil estará pronto para entrar <strong>sem qualquer password</strong>!
-        </p>
-      </div>
-
-      <form id="signup-form">
-        <div class="form-group">
-          <label class="form-label">O seu Email Gmail ou Nome *</label>
-          <input type="text" class="form-control" id="signup-email-input" placeholder="ex: utilizador@gmail.com ou Nome" required>
-        </div>
-
-        <button type="submit" class="btn btn-pink" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">🚀 Entrar no Monster High Stock (Sem Password)</button>
-        <button type="button" class="btn btn-cyan" style="width: 100%; font-size: 0.9rem; padding: 10px; margin-top: 8px;" onclick="app.openGoogleAuthModal()">🔑 Entrar com a Conta Google & Código</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Share Account & Invite Collaborator by Email -->
-  <div class="modal-overlay" id="modal-share">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3 class="modal-title">👥 Partilhar Conta com Parceiro/Namorada</h3>
-        <button class="close-btn" id="close-share-modal">&times;</button>
-      </div>
-
-      <div style="margin-bottom: 16px;">
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-          Introduza o email da pessoa com quem pretende partilhar a app. Um email de convite com ligação de acesso automático será gerado para ser enviado!
-        </p>
-      </div>
-
-      <form id="share-form">
-        <div class="form-group">
-          <label class="form-label">Email do Colaborador / Namorada *</label>
-          <input type="email" class="form-control" id="share-email-input" placeholder="ex: parceiro@gmail.com" required>
-        </div>
-
-        <button type="submit" class="btn btn-cyan" style="width: 100%; font-size: 0.95rem;">✉️ Enviar Convite por Email & Dar Acesso</button>
-      </form>
-
-      <div style="margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
-        <label class="form-label" style="color: var(--pink-neon);">📋 Colaboradores com Acesso Ativo:</label>
-        <div id="collaborators-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-          <!-- List of shared emails -->
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Modal: Trading Card Instagram/TikTok Generator -->
   <div class="modal-overlay" id="modal-card">
@@ -757,7 +621,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=26"></script>
+  <script src="app.js?v=27"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));

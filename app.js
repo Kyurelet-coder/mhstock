@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Automatic Email Send from bloomfinancehelp@gmail.com, Paste Code
+   Features: Pure LocalStorage per Device, Zero Login Bureaucracy, Clean Reset
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -12,100 +12,6 @@ const COLLECTIONS = [
   "Sweet 1600", "Other"
 ];
 
-// Firebase Web App Configuration (Public Client Config for Firestore Sync)
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyD-MH-Stock-Manager-Pro-App-2026",
-  authDomain: "mh-stock-manager.firebaseapp.com",
-  projectId: "mh-stock-manager",
-  storageBucket: "mh-stock-manager.appspot.com",
-  messagingSenderId: "987654321012",
-  appId: "1:987654321012:web:mhstockmanagerpro"
-};
-
-// Initial Seed Inventory Data
-const INITIAL_SEED_DOLLS = [
-  {
-    id: 1,
-    name: "Rochelle creeproduction (Coleção)",
-    character: "Rochelle",
-    line: "Creeproduction",
-    condition: "NIB",
-    status: "personal",
-    purchasePrice: 35.57,
-    sellingPrice: 0.00,
-    soldPrice: null,
-    batchId: "#00001-Rochelle creeproduction",
-    notes: "Coleção Própria",
-    hairstyleDifficulty: "Simples 🟢",
-    photoUrl: null
-  },
-  {
-    id: 2,
-    name: "Rochelle creeproduction (Revenda #1)",
-    character: "Rochelle",
-    line: "Creeproduction",
-    condition: "NIB",
-    status: "in_stock",
-    purchasePrice: 35.57,
-    sellingPrice: 53.35,
-    soldPrice: null,
-    batchId: "#00001-Rochelle creeproduction",
-    notes: "Revenda para amortizar lote",
-    hairstyleDifficulty: "Simples 🟢",
-    photoUrl: null
-  },
-  {
-    id: 3,
-    name: "Rochelle creeproduction (Revenda #2)",
-    character: "Rochelle",
-    line: "Creeproduction",
-    condition: "NIB",
-    status: "in_stock",
-    purchasePrice: 35.57,
-    sellingPrice: 53.35,
-    soldPrice: null,
-    batchId: "#00001-Rochelle creeproduction",
-    notes: "Revenda para amortizar lote",
-    hairstyleDifficulty: "Simples 🟢",
-    photoUrl: null
-  },
-  {
-    id: 4,
-    name: "Honey Swamp",
-    character: "Honey Swamp",
-    line: "Signature (G1)",
-    condition: "To be restored",
-    status: "in_stock",
-    purchasePrice: 18.15,
-    sellingPrice: 45.00,
-    soldPrice: null,
-    batchId: null,
-    notes: "Para restauro individual",
-    hairstyleDifficulty: "Difícil 🔴",
-    photoUrl: null
-  },
-  {
-    id: 5,
-    name: "C.A Cupid",
-    character: "C.A Cupid",
-    line: "Other",
-    condition: "Good",
-    status: "sold",
-    purchasePrice: 16.05,
-    sellingPrice: 45.00,
-    soldPrice: 45.20,
-    batchId: null,
-    notes: "Vendido",
-    hairstyleDifficulty: "Médio 🟡",
-    photoUrl: null
-  }
-];
-
-const INITIAL_SEED_WISHLIST = [
-  { id: 1, name: "Elissabat (Frights Camera Action)", maxPrice: 45.00, priority: "Alta 🔥" },
-  { id: 2, name: "C.A. Cupid (Sweet 1600)", maxPrice: 35.00, priority: "Média ⭐" }
-];
-
 class MHStockApp {
   constructor() {
     this.dolls = [];
@@ -113,511 +19,64 @@ class MHStockApp {
     this.currentViewMode = 'grid';
     this.currentPhotoBase64 = null;
     this.selectedCardDollId = null;
-    
-    // User Session & Security Code State
-    this.localUserProfile = null;
-    this.currentWorkspaceId = null;
-    this.activeSecurityCode = null;
-    this.pendingEmail = null;
-    this.pendingName = null;
-    this.sharedEmails = [];
-    this.firestoreUnsubscribe = null;
-    this.isFirebaseReady = false;
 
     this.init();
   }
 
   init() {
     this.loadState();
-    this.checkUserSession();
-    this.initFirebase();
     this.populateLineDropdowns();
     this.populateSimBatchDropdown();
     this.bindEvents();
-    this.setupCodeBoxesAutoAdvance();
     this.render();
     this.updateSimulator();
-    this.checkUrlInvite();
   }
 
-  // --- PASTE ENTIRE 6-DIGIT CODE AT ONCE & AUTO-ADVANCE INPUT BOXES ---
-  setupCodeBoxesAutoAdvance() {
-    const grid = document.querySelector('.code-inputs-grid');
-    if (!grid) return;
-
-    // 1. Full Clipboard PASTE event handler across the grid
-    grid.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const clipboardText = (e.clipboardData || window.clipboardData).getData('text').trim();
-      const digits = clipboardText.replace(/\D/g, '').slice(0, 6);
-
-      if (digits.length > 0) {
-        for (let i = 0; i < 6; i++) {
-          const box = document.getElementById(`code-${i + 1}`);
-          if (box) {
-            box.value = digits[i] || '';
-          }
-        }
-        // Focus the last filled box or submit target
-        const lastIdx = Math.min(digits.length, 6);
-        const lastBox = document.getElementById(`code-${lastIdx}`);
-        if (lastBox) lastBox.focus();
-      }
-    });
-
-    // 2. Individual box input & backspace events
-    for (let i = 1; i <= 6; i++) {
-      const box = document.getElementById(`code-${i}`);
-      if (box) {
-        box.addEventListener('input', (e) => {
-          // If multi-digit string pasted into single box
-          if (box.value.length > 1) {
-            const digits = box.value.replace(/\D/g, '').slice(0, 6);
-            for (let j = 0; j < digits.length; j++) {
-              const targetBox = document.getElementById(`code-${i + j}`);
-              if (targetBox) targetBox.value = digits[j];
-            }
-            const focusIndex = Math.min(i + digits.length - 1, 6);
-            document.getElementById(`code-${focusIndex}`).focus();
-            return;
-          }
-
-          if (e.target.value.length >= 1 && i < 6) {
-            document.getElementById(`code-${i + 1}`).focus();
-          }
-        });
-
-        box.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && !e.target.value && i > 1) {
-            document.getElementById(`code-${i - 1}`).focus();
-          }
-        });
-      }
-    }
-  }
-
-  // --- PASSWORDLESS 1-TAP USER SESSION MANAGEMENT ---
-  checkUserSession() {
-    const savedProfile = localStorage.getItem('mh_user_profile_v1');
-    if (savedProfile) {
-      try {
-        this.localUserProfile = JSON.parse(savedProfile);
-        this.applyUserProfile(this.localUserProfile);
-      } catch(e) {
-        this.openSignupModal();
-      }
-    } else {
-      // First time user entering app -> Open Signup Modal
-      setTimeout(() => this.openSignupModal(), 400);
-    }
-  }
-
-  openSignupModal() {
-    document.getElementById('modal-signup').classList.add('active');
-  }
-
-  closeSignupModal() {
-    document.getElementById('modal-signup').classList.remove('active');
-  }
-
-  handleSignupSubmit(e) {
-    e.preventDefault();
-    const inputVal = document.getElementById('signup-email-input').value.trim();
-    if (!inputVal) return;
-
-    let email = '';
-    let name = inputVal;
-
-    if (inputVal.includes('@')) {
-      email = inputVal.toLowerCase();
-      const rawName = email.split('@')[0];
-      name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    }
-
-    this.localUserProfile = {
-      name: name,
-      email: email,
-      avatar: 'app_icon.jpg',
-      createdAt: new Date().toISOString()
-    };
-
-    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
-    this.applyUserProfile(this.localUserProfile);
-    this.closeSignupModal();
-
-    if (email) {
-      this.setupRealtimeWorkspace(this.localUserProfile);
-    }
-  }
-
-  // --- CLEAN GOOGLE AUTH & AUTOMATED EMAIL SEND FROM bloomfinancehelp@gmail.com ---
-  openGoogleAuthModal() {
-    this.closeSignupModal();
-    this.closeDrawer();
-    document.getElementById('modal-google-auth').classList.add('active');
-
-    // Reset steps
-    document.getElementById('auth-step-email').style.display = 'block';
-    document.getElementById('auth-step-code').style.display = 'none';
-
-    if (this.localUserProfile) {
-      document.getElementById('google-email-input').value = this.localUserProfile.email || '';
-      document.getElementById('google-name-input').value = this.localUserProfile.name || '';
-    }
-  }
-
-  closeGoogleAuthModal() {
-    document.getElementById('modal-google-auth').classList.remove('active');
-  }
-
-  // STEP 1: Generate 6-digit code and send automatically from bloomfinancehelp@gmail.com
-  async sendVerificationCode() {
-    const emailInput = document.getElementById('google-email-input').value.trim().toLowerCase();
-    const nameInput = document.getElementById('google-name-input').value.trim();
-
-    if (!emailInput || !emailInput.includes('@')) {
-      alert('⚠️ Por favor introduza um email Gmail válido (ex: utilizador@gmail.com).');
-      return;
-    }
-
-    this.pendingEmail = emailInput;
-    const rawName = emailInput.split('@')[0];
-    this.pendingName = nameInput || (rawName.charAt(0).toUpperCase() + rawName.slice(1));
-
-    // Generate random 6-digit security code
-    this.activeSecurityCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const btnSend = document.getElementById('btn-send-code');
-    const originalText = btnSend.innerHTML;
-    btnSend.disabled = true;
-    btnSend.innerHTML = `⌛ A enviar a partir de bloomfinancehelp@gmail.com...`;
-
-    // Dispatch background email from bloomfinancehelp@gmail.com -> emailInput
-    try {
-      await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: 'service_bloomfinance',
-          template_id: 'template_verification',
-          user_id: 'user_bloomfinancehelp',
-          template_params: {
-            from_email: 'bloomfinancehelp@gmail.com',
-            from_name: 'Monster High Stock Manager',
-            to_email: emailInput,
-            to_name: this.pendingName,
-            verification_code: this.activeSecurityCode,
-            subject: `🧟‍♀️ Código de Confirmação Monster High Stock: ${this.activeSecurityCode}`
-          }
-        })
-      });
-    } catch(err) {
-      console.warn("Background Email API dispatch from bloomfinancehelp@gmail.com:", err);
-    }
-
-    btnSend.disabled = false;
-    btnSend.innerHTML = originalText;
-
-    // Display Step 2 (6 Digit Code Inputs with Paste Support)
-    document.getElementById('auth-step-email').style.display = 'none';
-    document.getElementById('auth-step-code').style.display = 'block';
-    document.getElementById('verify-target-email').textContent = emailInput;
-
-    // Clear code boxes and focus first box
-    for (let i = 1; i <= 6; i++) {
-      const box = document.getElementById(`code-${i}`);
-      if (box) box.value = '';
-    }
-
-    setTimeout(() => {
-      const firstBox = document.getElementById('code-1');
-      if (firstBox) firstBox.focus();
-    }, 300);
-
-    alert(`📩 Código de Verificação [${this.activeSecurityCode}] enviado automaticamente a partir de bloomfinancehelp@gmail.com para ${emailInput}!\n\nVerifique a sua caixa de entrada e cole o código de 6 dígitos.`);
-  }
-
-  // STEP 2: Validate 6-Digit Code Submitted or Pasted by User
-  handleGoogleAuthSubmit(e) {
-    e.preventDefault();
-
-    // Read entered 6 digits
-    let enteredCode = '';
-    for (let i = 1; i <= 6; i++) {
-      const box = document.getElementById(`code-${i}`);
-      if (box) enteredCode += box.value.trim();
-    }
-
-    if (enteredCode.length < 6) {
-      alert('⚠️ Por favor introduza ou cole todos os 6 dígitos do código de verificação.');
-      return;
-    }
-
-    if (enteredCode === this.activeSecurityCode || enteredCode === '123456') {
-      // CODE MATCH! Save verified session
-      this.localUserProfile = {
-        name: this.pendingName || 'Colecionador',
-        email: this.pendingEmail,
-        avatar: 'app_icon.jpg',
-        isVerified: true,
-        verifiedAt: new Date().toISOString()
-      };
-
-      localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
-      this.applyUserProfile(this.localUserProfile);
-      this.closeGoogleAuthModal();
-
-      // Auto setup Firestore realtime cloud workspace
-      this.setupRealtimeWorkspace(this.localUserProfile);
-
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      }
-
-      alert(`✅ CÓDIGO CONFIRMADO COM SUCESSO!\nSessão de ${this.localUserProfile.name} (${this.localUserProfile.email}) ativada e sincronizada.`);
-    } else {
-      alert(`❌ Código incorreto!\nO código enviado a partir de bloomfinancehelp@gmail.com para ${this.pendingEmail} foi [${this.activeSecurityCode}]. Por favor tente novamente.`);
-    }
-  }
-
-  applyUserProfile(profile) {
-    const welcomeHeader = document.getElementById('header-user-welcome');
-    const bannerTitle = document.getElementById('auth-banner-title');
-    const bannerSub = document.getElementById('auth-banner-sub');
-    const quickBadge = document.getElementById('quick-user-profile-badge');
-
-    if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
-
-    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Confirmada: ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = profile.email ? `Email Verificado: ${profile.email} (Sincronização em tempo real)` : `Sessão ligada no dispositivo sem password.`;
-
-    if (quickBadge) {
-      quickBadge.innerHTML = `
-        <span style="font-size: 0.78rem; font-weight: 700; color: var(--pink-neon); background: rgba(255,0,127,0.15); padding: 3px 8px; border-radius: 12px; border: 1px solid var(--pink-neon);">
-          👤 ${profile.name} (Verificado ✅)
-        </span>
-      `;
-    }
-
-    this.updateDrawerUserCard();
-  }
-
-  updateDrawerUserCard() {
-    const drawerActions = document.getElementById('drawer-user-actions');
-    if (!drawerActions) return;
-
-    if (this.localUserProfile) {
-      drawerActions.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <img src="app_icon.jpg" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${this.localUserProfile.name}</div>
-            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Ativo'}</div>
-          </div>
-        </div>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openGoogleAuthModal()">🔑 Ligar Conta Google & Código</button>
-        <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem;" onclick="app.switchProfile()">👤 Mudar Nome / Perfil</button>
-      `;
-    } else {
-      drawerActions.innerHTML = `
-        <button class="btn btn-pink" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openSignupModal()">🚀 Criar Perfil</button>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.openGoogleAuthModal()">🔑 Entrar com Google & Código</button>
-      `;
-    }
-  }
-
-  switchProfile() {
-    this.closeDrawer();
-    this.openSignupModal();
-  }
-
-  initFirebase() {
-    try {
-      if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-        this.isFirebaseReady = true;
-
-        if (this.localUserProfile && this.localUserProfile.email) {
-          this.setupRealtimeWorkspace(this.localUserProfile);
-        }
-      }
-    } catch (e) {
-      console.warn("Firebase Init Fallback to Local Storage:", e);
-    }
-  }
-
-  checkUrlInvite() {
-    const params = new URLSearchParams(window.location.search);
-    const inviteWorkspace = params.get('invite') || params.get('workspace');
-    if (inviteWorkspace) {
-      this.currentWorkspaceId = inviteWorkspace;
-      localStorage.setItem('mh_active_workspace', inviteWorkspace);
-      alert(`🎉 Aderiu à Sessão Partilhada #${inviteWorkspace}! O seu telemóvel está agora ligado ao mesmo stock.`);
-    }
-  }
-
-  loginWithGoogle() {
-    this.openGoogleAuthModal();
-  }
-
-  logout() {
-    this.localUserProfile = null;
-    localStorage.removeItem('mh_user_profile_v1');
-    this.openSignupModal();
-    this.closeDrawer();
-  }
-
-  setupRealtimeWorkspace(profile) {
-    if (!profile || !profile.email) return;
-
-    this.currentWorkspaceId = `ws_${profile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
-    if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
-      const db = firebase.firestore();
-      const wsRef = db.collection('workspaces').doc(this.currentWorkspaceId);
-
-      wsRef.get().then((doc) => {
-        if (!doc.exists) {
-          wsRef.set({
-            ownerEmail: profile.email,
-            sharedEmails: [profile.email],
-            dolls: this.dolls,
-            wishlist: this.wishlist,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }
-      });
-
-      if (this.firestoreUnsubscribe) this.firestoreUnsubscribe();
-
-      this.firestoreUnsubscribe = wsRef.onSnapshot((doc) => {
-        if (doc.exists) {
-          const data = doc.data();
-          if (data.dolls) this.dolls = data.dolls;
-          if (data.wishlist) this.wishlist = data.wishlist;
-          if (data.sharedEmails) this.sharedEmails = data.sharedEmails;
-          this.render();
-          this.renderCollaboratorsList();
-        }
-      });
-    }
-  }
-
-  // Side Navigation Drawer Logic
-  openDrawer() {
-    this.updateDrawerUserCard();
-    document.getElementById('sidebar-drawer').classList.add('active');
-    document.getElementById('drawer-overlay').classList.add('active');
-  }
-
-  closeDrawer() {
-    document.getElementById('sidebar-drawer').classList.remove('active');
-    document.getElementById('drawer-overlay').classList.remove('active');
-  }
-
-  openShareModal() {
-    this.closeDrawer();
-    document.getElementById('modal-share').classList.add('active');
-    this.renderCollaboratorsList();
-  }
-
-  closeShareModal() {
-    document.getElementById('modal-share').classList.remove('active');
-  }
-
-  handleShareSubmit(e) {
-    e.preventDefault();
-    const targetEmail = document.getElementById('share-email-input').value.trim().toLowerCase();
-    if (!targetEmail) return;
-
-    if (!this.sharedEmails.includes(targetEmail)) {
-      this.sharedEmails.push(targetEmail);
-    }
-
-    // Update in Firestore
-    if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
-      firebase.firestore().collection('workspaces').doc(this.currentWorkspaceId).update({
-        sharedEmails: this.sharedEmails
-      });
-    }
-
-    const senderName = this.localUserProfile ? this.localUserProfile.name : 'O teu parceiro';
-
-    // Generate Direct Invite Email URL
-    const appUrl = `https://Kyurelet-coder.github.io/mhstock/?invite=${this.currentWorkspaceId || 'demo'}`;
-    const subject = encodeURIComponent(`🧟‍♀️ Convite para Aderir à Conta Partilhada Monster High Stock!`);
-    const body = encodeURIComponent(
-      `Olá!\n\n${senderName} convidou-te para partilharem a mesma conta e coleção de Monster High em tempo real!\n\n` +
-      `Clica nesta ligação no teu telemóvel para entrares na sessão partilhada:\n👉 ${appUrl}\n\n` +
-      `Abre a app no telemóvel e terão todo o stock e coleção sincronizados instantaneamente!`
-    );
-
-    const mailtoUrl = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
-    window.location.href = mailtoUrl;
-
-    alert(`✉️ Convite enviado para '${targetEmail}'!\nFoi aberto o fornecedor de email com a mensagem pronta para enviar.`);
-    document.getElementById('share-form').reset();
-    this.renderCollaboratorsList();
-  }
-
-  renderCollaboratorsList() {
-    const container = document.getElementById('collaborators-list-container');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    const currentEmail = this.localUserProfile ? this.localUserProfile.email : '';
-    const list = this.sharedEmails.length > 0 ? this.sharedEmails : (currentEmail ? [currentEmail] : []);
-
-    list.forEach(email => {
-      const tag = document.createElement('div');
-      tag.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(13,8,20,0.7); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 0.85rem;";
-      tag.innerHTML = `
-        <span style="color: var(--text-white); font-weight: 600;">📧 ${email}</span>
-        <span style="color: var(--cyan-mint); font-weight: 700; font-size: 0.75rem;">Ativo 🟢</span>
-      `;
-      container.appendChild(tag);
-    });
-  }
-
+  // --- LOCALSTORAGE PER DEVICE (PURE & DIRECT) ---
   loadState() {
-    const savedDolls = localStorage.getItem('mh_stock_data_v16');
+    const savedDolls = localStorage.getItem('mh_stock_data_v27');
     if (savedDolls) {
       try { 
         this.dolls = JSON.parse(savedDolls);
       } catch (e) {
-        this.dolls = INITIAL_SEED_DOLLS;
+        this.dolls = [];
       }
     } else {
-      this.dolls = INITIAL_SEED_DOLLS;
+      // First time launch on this device -> Reset fresh state!
+      this.dolls = [];
       this.saveState();
     }
 
-    const savedWish = localStorage.getItem('mh_wishlist_data_v1');
+    const savedWish = localStorage.getItem('mh_wishlist_data_v27');
     if (savedWish) {
-      try { this.wishlist = JSON.parse(savedWish); } catch (e) { this.wishlist = INITIAL_SEED_WISHLIST; }
+      try { this.wishlist = JSON.parse(savedWish); } catch (e) { this.wishlist = []; }
     } else {
-      this.wishlist = INITIAL_SEED_WISHLIST;
+      this.wishlist = [];
+      this.saveState();
     }
   }
 
   saveState() {
     try {
-      localStorage.setItem('mh_stock_data_v16', JSON.stringify(this.dolls));
-      localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
-
-      if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
-        firebase.firestore().collection('workspaces').doc(this.currentWorkspaceId).update({
-          dolls: this.dolls,
-          wishlist: this.wishlist,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => console.warn("Firestore sync update:", err));
-      }
+      localStorage.setItem('mh_stock_data_v27', JSON.stringify(this.dolls));
+      localStorage.setItem('mh_wishlist_data_v27', JSON.stringify(this.wishlist));
     } catch (e) {
-      console.warn("localStorage quota or write warning:", e);
+      console.warn("localStorage write warning:", e);
     }
     this.populateSimBatchDropdown();
     this.render();
+  }
+
+  resetDeviceStorage() {
+    if (confirm('⚠️ Tem a certeza que pretende resetar os dados deste dispositivo?\n\nTodas as bonecas e wishlist gravadas neste telemóvel serão limpas.')) {
+      this.dolls = [];
+      this.wishlist = [];
+      localStorage.removeItem('mh_stock_data_v27');
+      localStorage.removeItem('mh_wishlist_data_v27');
+      this.saveState();
+      this.closeDrawer();
+      alert('✨ Aplicação resetada com sucesso neste dispositivo!');
+    }
   }
 
   getNextBatchId(lotName) {
@@ -640,6 +99,10 @@ class MHStockApp {
   populateLineDropdowns() {
     const colFilter = document.getElementById('filter-collection');
     const formLine = document.getElementById('form-line');
+
+    if (!colFilter || !formLine) return;
+    colFilter.innerHTML = '<option value="ALL">Todas as Linhas</option>';
+    formLine.innerHTML = '';
 
     COLLECTIONS.forEach(col => {
       const opt1 = document.createElement('option');
@@ -670,13 +133,6 @@ class MHStockApp {
   }
 
   bindEvents() {
-    // Signup Form submit
-    document.getElementById('signup-form').addEventListener('submit', (e) => this.handleSignupSubmit(e));
-
-    // Google Auth Form submit & close
-    document.getElementById('google-auth-form').addEventListener('submit', (e) => this.handleGoogleAuthSubmit(e));
-    document.getElementById('close-google-auth-modal').addEventListener('click', () => this.closeGoogleAuthModal());
-
     // Android Hamburger Drawer Menu Events
     document.getElementById('btn-hamburger-menu').addEventListener('click', () => this.openDrawer());
     document.getElementById('close-drawer-btn').addEventListener('click', () => this.closeDrawer());
@@ -689,7 +145,6 @@ class MHStockApp {
     document.getElementById('drawer-nav-wishlist').addEventListener('click', () => { this.switchTab('wishlist', 'nav-wishlist'); this.closeDrawer(); });
     document.getElementById('drawer-nav-simulator').addEventListener('click', () => { this.switchTab('simulator'); this.closeDrawer(); });
 
-    document.getElementById('drawer-nav-share').addEventListener('click', () => this.openShareModal());
     document.getElementById('drawer-nav-batch').addEventListener('click', () => { this.openBatchModal(); this.closeDrawer(); });
     document.getElementById('drawer-nav-export').addEventListener('click', () => { this.exportCSV(); this.closeDrawer(); });
 
@@ -708,10 +163,6 @@ class MHStockApp {
     document.getElementById('tab-btn-analytics').addEventListener('click', () => this.switchTab('analytics'));
     document.getElementById('tab-btn-wishlist').addEventListener('click', () => this.switchTab('wishlist'));
     document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
-
-    // Auth & Share Modals
-    document.getElementById('close-share-modal').addEventListener('click', () => this.closeShareModal());
-    document.getElementById('share-form').addEventListener('submit', (e) => this.handleShareSubmit(e));
 
     // Modals open/close
     document.getElementById('btn-add-header').addEventListener('click', () => this.openDollModal());
@@ -1020,7 +471,14 @@ class MHStockApp {
     container.innerHTML = '';
 
     if (items.length === 0) {
-      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px;">Nenhuma boneca encontrada com os filtros selecionados.</div>`;
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
+          <div style="font-size: 3rem; margin-bottom: 10px;">🧟‍♀️</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-white); margin-bottom: 6px;">Nenhuma boneca registada</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">A aplicação está resetada e pronta para o seu dispositivo. Adicione a sua primeira boneca ou registe uma compra em lote!</div>
+          <button class="btn btn-pink" onclick="app.openDollModal()">➕ Adicionar Primeira Boneca</button>
+        </div>
+      `;
       return;
     }
 
@@ -1438,7 +896,6 @@ class MHStockApp {
     document.getElementById('modal-card').classList.remove('active');
   }
 
-  // --- RENDER VIRTUAL SHELF WITH INSTANT LIVE PHOTO REFRESH ---
   renderVirtualShelf() {
     const container = document.getElementById('virtual-shelf-grid');
     if (!container) return;
@@ -1566,7 +1023,7 @@ class MHStockApp {
       net = price * 0.872;
     }
 
-    document.getElementById('sell-net-preview').textContent = `💵 Lucro Líquido Estimado a receber: €${net.toFixed(2)}`;
+    document.getElementById('sell-net-preview').textContent = `💵 Lucro Líquido Estimado: €${net.toFixed(2)}`;
   }
 
   handleSellSubmit(e) {
@@ -1693,14 +1150,13 @@ class MHStockApp {
     }
   }
 
-  // --- MOVE PERSONAL COLLECTION DOLL TO RESALE STOCK ---
   moveToResale(id) {
     const d = this.dolls.find(item => item.id === id);
     if (!d) return;
 
     const defaultEst = d.purchasePrice ? (d.purchasePrice * 1.5).toFixed(2) : "45.00";
     const estPriceStr = prompt(`Qual o Preço Estimado de Venda (€) para colocar '${d.name}' à venda?`, defaultEst);
-    if (estPriceStr === null) return; // User cancelled
+    if (estPriceStr === null) return;
 
     const estPrice = parseFloat(estPriceStr.replace(',', '.')) || 0;
     d.status = 'in_stock';
@@ -1855,10 +1311,21 @@ class MHStockApp {
     link.click();
     document.body.removeChild(link);
   }
+
+  openDrawer() {
+    document.getElementById('sidebar-drawer').classList.add('active');
+    document.getElementById('drawer-overlay').classList.add('active');
+  }
+
+  closeDrawer() {
+    document.getElementById('sidebar-drawer').classList.remove('active');
+    document.getElementById('drawer-overlay').classList.remove('active');
+  }
 }
 
-// Clear old cache keys from localStorage if present
+// Clear old cache keys from localStorage
 try {
+  localStorage.removeItem('mh_stock_data_v16');
   localStorage.removeItem('mh_stock_data_v15');
   localStorage.removeItem('mh_stock_data_v14');
   localStorage.removeItem('mh_stock_data_v13');
@@ -1866,13 +1333,7 @@ try {
   localStorage.removeItem('mh_stock_data_v11');
   localStorage.removeItem('mh_stock_data_v10');
   localStorage.removeItem('mh_stock_data_v9');
-  localStorage.removeItem('mh_stock_data_v8');
-  localStorage.removeItem('mh_stock_data_v7');
-  localStorage.removeItem('mh_stock_data_v6');
-  localStorage.removeItem('mh_stock_data_v5');
-  localStorage.removeItem('mh_stock_data_v4');
-  localStorage.removeItem('mh_stock_data_v2');
-  localStorage.removeItem('mh_stock_data_v1');
+  localStorage.removeItem('mh_user_profile_v1');
 } catch(e) {}
 
 // Global App Instance
