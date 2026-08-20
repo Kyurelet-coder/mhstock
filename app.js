@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Google Login, Firebase Realtime Sync, Email Sharing, Hamburger Drawer
+   Features: 1-Tap Passwordless Login, First-time Signup, Google Auth & Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -114,7 +114,8 @@ class MHStockApp {
     this.currentPhotoBase64 = null;
     this.selectedCardDollId = null;
     
-    // Auth & Realtime Workspace State
+    // User Session State
+    this.localUserProfile = null;
     this.currentUser = null;
     this.currentWorkspaceId = null;
     this.sharedEmails = [];
@@ -126,6 +127,7 @@ class MHStockApp {
 
   init() {
     this.loadState();
+    this.checkUserSession();
     this.initFirebase();
     this.populateLineDropdowns();
     this.populateSimBatchDropdown();
@@ -133,6 +135,116 @@ class MHStockApp {
     this.render();
     this.updateSimulator();
     this.checkUrlInvite();
+  }
+
+  // --- PASSWORDLESS 1-TAP USER SESSION MANAGEMENT ---
+  checkUserSession() {
+    const savedProfile = localStorage.getItem('mh_user_profile_v1');
+    if (savedProfile) {
+      try {
+        this.localUserProfile = JSON.parse(savedProfile);
+        this.applyUserProfile(this.localUserProfile);
+      } catch(e) {
+        this.openSignupModal();
+      }
+    } else {
+      // First time user entering app -> Open Signup Modal
+      setTimeout(() => this.openSignupModal(), 400);
+    }
+  }
+
+  openSignupModal() {
+    document.getElementById('modal-signup').classList.add('active');
+  }
+
+  closeSignupModal() {
+    document.getElementById('modal-signup').classList.remove('active');
+  }
+
+  handleSignupSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('signup-name-input').value.trim();
+    const email = document.getElementById('signup-email-input').value.trim();
+
+    if (!name) return;
+
+    this.localUserProfile = {
+      name: name,
+      email: email || '',
+      avatar: 'app_icon.jpg',
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
+    this.applyUserProfile(this.localUserProfile);
+    this.closeSignupModal();
+  }
+
+  applyUserProfile(profile) {
+    const welcomeHeader = document.getElementById('header-user-welcome');
+    const bannerTitle = document.getElementById('auth-banner-title');
+    const bannerSub = document.getElementById('auth-banner-sub');
+    const quickBadge = document.getElementById('quick-user-profile-badge');
+
+    if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
+
+    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa de ${profile.name}`;
+    if (bannerSub) bannerSub.textContent = `Sessão ligada automaticamente sem password! O seu stock e coleção estão guardados no seu telemóvel.`;
+
+    if (quickBadge) {
+      quickBadge.innerHTML = `
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--pink-neon); background: rgba(255,0,127,0.15); padding: 3px 8px; border-radius: 12px; border: 1px solid var(--pink-neon);">
+          👤 ${profile.name}
+        </span>
+      `;
+    }
+
+    this.updateDrawerUserCard();
+  }
+
+  updateDrawerUserCard() {
+    const drawerActions = document.getElementById('drawer-user-actions');
+    if (!drawerActions) return;
+
+    if (this.currentUser) {
+      // Firebase User
+      const avatarSrc = this.currentUser.photoURL || 'app_icon.jpg';
+      const name = this.currentUser.displayName || this.currentUser.email.split('@')[0];
+
+      drawerActions.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
+          <div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${name}</div>
+            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.currentUser.email}</div>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--red-accent);" onclick="app.logout()">🚪 Sair da Conta Google</button>
+      `;
+    } else if (this.localUserProfile) {
+      // Local Passwordless User Profile
+      drawerActions.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <img src="app_icon.jpg" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
+          <div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${this.localUserProfile.name}</div>
+            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Local Ativo'}</div>
+          </div>
+        </div>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.loginWithGoogle()">🔑 Ligar Conta Google</button>
+        <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem;" onclick="app.switchProfile()">👤 Mudar Nome / Perfil</button>
+      `;
+    } else {
+      drawerActions.innerHTML = `
+        <button class="btn btn-pink" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openSignupModal()">🚀 Criar Perfil</button>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.loginWithGoogle()">🔑 Entrar com Google</button>
+      `;
+    }
+  }
+
+  switchProfile() {
+    this.closeDrawer();
+    this.openSignupModal();
   }
 
   initFirebase() {
@@ -156,7 +268,7 @@ class MHStockApp {
     if (inviteWorkspace) {
       this.currentWorkspaceId = inviteWorkspace;
       localStorage.setItem('mh_active_workspace', inviteWorkspace);
-      alert(`🎉 Aderiu à Sessão Partilhada #${inviteWorkspace}! Se fizer login com o Google, os seus telemóveis ficarão sincronizados.`);
+      alert(`🎉 Aderiu à Sessão Partilhada #${inviteWorkspace}! O seu telemóvel está agora ligado ao mesmo stock.`);
     }
   }
 
@@ -164,8 +276,8 @@ class MHStockApp {
     if (!this.isFirebaseReady || typeof firebase === 'undefined') {
       alert("Demonstração de Login Google Ativada!\nEm breve estará 100% ligado aos servidores da Google.");
       this.onAuthStateChanged({
-        displayName: "Utilizador Monster High",
-        email: "exemplo@gmail.com",
+        displayName: this.localUserProfile ? this.localUserProfile.name : "Utilizador Monster High",
+        email: this.localUserProfile ? this.localUserProfile.email : "exemplo@gmail.com",
         photoURL: "app_icon.jpg",
         uid: "demo_user_123"
       });
@@ -185,52 +297,28 @@ class MHStockApp {
     if (this.isFirebaseReady && firebase.auth()) {
       firebase.auth().signOut();
     }
-    this.onAuthStateChanged(null);
+    this.currentUser = null;
+    if (this.localUserProfile) {
+      this.applyUserProfile(this.localUserProfile);
+    } else {
+      this.onAuthStateChanged(null);
+    }
     this.closeDrawer();
   }
 
   onAuthStateChanged(user) {
     this.currentUser = user;
 
-    const drawerActions = document.getElementById('drawer-user-actions');
-    const bannerTitle = document.getElementById('auth-banner-title');
-    const bannerSub = document.getElementById('auth-banner-sub');
-    const bannerBtn = document.getElementById('btn-banner-login');
-
     if (user) {
-      const avatarSrc = user.photoURL || 'app_icon.jpg';
       const name = user.displayName || user.email.split('@')[0];
-
-      if (drawerActions) {
-        drawerActions.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
-            <div>
-              <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${name}</div>
-              <div style="font-size: 0.72rem; color: var(--cyan-mint);">${user.email}</div>
-            </div>
-          </div>
-          <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--red-accent);" onclick="app.logout()">🚪 Sair da Conta Google</button>
-        `;
-      }
-
-      bannerTitle.textContent = `🟢 Sessão Sincronizada: ${name}`;
-      bannerSub.textContent = `Os seus telemóveis estão ligados em tempo real! Abra o menu lateral ☰ para convidar a sua namorada por email.`;
-      bannerBtn.style.display = 'none';
-
-      // Auto resolve workspace
+      this.applyUserProfile({ name: name, email: user.email, avatar: user.photoURL });
       this.setupRealtimeWorkspace(user);
     } else {
-      if (drawerActions) {
-        drawerActions.innerHTML = `
-          <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.loginWithGoogle()">🔑 Entrar com o Google</button>
-        `;
+      if (this.localUserProfile) {
+        this.applyUserProfile(this.localUserProfile);
       }
-
-      bannerTitle.textContent = `Modo Convidado (Guardado no dispositivo)`;
-      bannerSub.textContent = `Abra o menu lateral ☰ e faça login com a conta Google para sincronizar telemóveis e partilhar a conta!`;
-      bannerBtn.style.display = 'inline-flex';
     }
+    this.updateDrawerUserCard();
   }
 
   setupRealtimeWorkspace(user) {
@@ -271,6 +359,7 @@ class MHStockApp {
 
   // Side Navigation Drawer Logic
   openDrawer() {
+    this.updateDrawerUserCard();
     document.getElementById('sidebar-drawer').classList.add('active');
     document.getElementById('drawer-overlay').classList.add('active');
   }
@@ -282,12 +371,6 @@ class MHStockApp {
 
   openShareModal() {
     this.closeDrawer();
-    if (!this.currentUser) {
-      alert("Por favor faça primeiro Login com o Google no menu lateral ☰ para poder partilhar a sua conta!");
-      this.loginWithGoogle();
-      return;
-    }
-
     document.getElementById('modal-share').classList.add('active');
     this.renderCollaboratorsList();
   }
@@ -312,19 +395,21 @@ class MHStockApp {
       });
     }
 
+    const senderName = this.localUserProfile ? this.localUserProfile.name : (this.currentUser ? this.currentUser.displayName : 'O teu parceiro');
+
     // Generate Direct Invite Email URL
     const appUrl = `https://Kyurelet-coder.github.io/mhstock/?invite=${this.currentWorkspaceId || 'demo'}`;
     const subject = encodeURIComponent(`🧟‍♀️ Convite para Aderir à Conta Partilhada Monster High Stock!`);
     const body = encodeURIComponent(
-      `Olá!\n\n${this.currentUser ? this.currentUser.displayName : 'O utilizador'} convidou-te para partilharem a mesma conta e coleção de Monster High em tempo real!\n\n` +
+      `Olá!\n\n${senderName} convidou-te para partilharem a mesma conta e coleção de Monster High em tempo real!\n\n` +
       `Clica nesta ligação no teu telemóvel para entrares na sessão partilhada:\n👉 ${appUrl}\n\n` +
-      `Abre a app, faz login com a tua conta Google e terão todo o stock e coleção sincronizados instantaneamente!`
+      `Abre a app no telemóvel e terão todo o stock e coleção sincronizados instantaneamente!`
     );
 
     const mailtoUrl = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
     window.location.href = mailtoUrl;
 
-    alert(`✉️ Convite enviado para '${targetEmail}'!\nFoi aberto o vosso fornecedor de email com a mensagem pronta para enviar.`);
+    alert(`✉️ Convite enviado para '${targetEmail}'!\nFoi aberto o fornecedor de email com a mensagem pronta para enviar.`);
     document.getElementById('share-form').reset();
     this.renderCollaboratorsList();
   }
@@ -335,7 +420,8 @@ class MHStockApp {
 
     container.innerHTML = '';
 
-    const list = this.sharedEmails.length > 0 ? this.sharedEmails : (this.currentUser ? [this.currentUser.email] : []);
+    const currentEmail = this.currentUser ? this.currentUser.email : (this.localUserProfile ? this.localUserProfile.email : '');
+    const list = this.sharedEmails.length > 0 ? this.sharedEmails : (currentEmail ? [currentEmail] : []);
 
     list.forEach(email => {
       const tag = document.createElement('div');
@@ -438,6 +524,9 @@ class MHStockApp {
   }
 
   bindEvents() {
+    // Signup Form submit
+    document.getElementById('signup-form').addEventListener('submit', (e) => this.handleSignupSubmit(e));
+
     // Android Hamburger Drawer Menu Events
     document.getElementById('btn-hamburger-menu').addEventListener('click', () => this.openDrawer());
     document.getElementById('close-drawer-btn').addEventListener('click', () => this.closeDrawer());
