@@ -708,12 +708,7 @@ class MHStockApp {
     const hasRestoration = (d.photoBeforeUrl || d.photoAfterUrl);
 
     if (mainPhoto) {
-      photosHtml = `
-        <div style="position: relative;">
-          <img src="${mainPhoto}" class="doll-photo-thumb" alt="${d.name}">
-          ${hasRestoration ? `<span class="photo-label-badge badge-label-after" style="position: absolute; top: 8px; right: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.8);">🧼 Restauro</span>` : ''}
-        </div>
-      `;
+      photosHtml = `<img src="${mainPhoto}" class="doll-photo-thumb" alt="${d.name}">`;
     } else {
       photosHtml = `<div class="shelf-doll-img-placeholder" style="height: 160px; margin-bottom: 10px; border-radius: var(--radius-sm);">🧟‍♀️</div>`;
     }
@@ -1052,12 +1047,7 @@ class MHStockApp {
       const hasRestoration = (d.photoBeforeUrl || d.photoAfterUrl);
 
       if (mainPhoto) {
-        photosHtml = `
-          <div style="position: relative;">
-            <img src="${mainPhoto}" class="shelf-doll-img" alt="${d.name}">
-            ${hasRestoration ? `<span class="photo-label-badge badge-label-after" style="position: absolute; top: 8px; right: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.8);">🧼 Restauro</span>` : ''}
-          </div>
-        `;
+        photosHtml = `<img src="${mainPhoto}" class="shelf-doll-img" alt="${d.name}">`;
       } else {
         photosHtml = `<div class="shelf-doll-img-placeholder">🧟‍♀️</div>`;
       }
