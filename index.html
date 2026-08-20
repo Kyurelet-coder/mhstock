@@ -10,8 +10,9 @@
   <meta name="theme-color" content="#FF007F">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="icon" type="image/jpeg" href="app_icon.jpg">
-  <link rel="apple-touch-icon" href="app_icon.jpg">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +22,7 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=35">
+  <link rel="stylesheet" href="styles.css?v=36">
 </head>
 <body>
 
@@ -608,7 +609,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=35"></script>
+  <script src="app.js?v=36"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -616,7 +617,7 @@
           registration.update();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=35').catch(err => console.log('SW error:', err));
+      navigator.serviceWorker.register('sw.js?v=36').catch(err => console.log('SW error:', err));
     }
   </script>
 </body>

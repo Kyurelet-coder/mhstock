@@ -1,11 +1,15 @@
-const CACHE_NAME = 'mh-stock-v35';
+const CACHE_NAME = 'mh-stock-v36';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
-  './app_icon.jpg'
+  './app_icon.jpg',
+  './icon-192.png',
+  './icon-512.png',
+  './screenshot-mobile.png',
+  './screenshot-desktop.png'
 ];
 
 self.addEventListener('install', (e) => {
