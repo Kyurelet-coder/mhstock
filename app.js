@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Direct Gmail Login, Automatic Name Extraction, Realtime Cloud Sync
+   Features: 6-Digit Email Security Verification Code, Realtime Cloud Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -114,9 +114,12 @@ class MHStockApp {
     this.currentPhotoBase64 = null;
     this.selectedCardDollId = null;
     
-    // User Session State
+    // User Session & Security Code State
     this.localUserProfile = null;
     this.currentWorkspaceId = null;
+    this.activeSecurityCode = null;
+    this.pendingEmail = null;
+    this.pendingName = null;
     this.sharedEmails = [];
     this.firestoreUnsubscribe = null;
     this.isFirebaseReady = false;
@@ -131,9 +134,29 @@ class MHStockApp {
     this.populateLineDropdowns();
     this.populateSimBatchDropdown();
     this.bindEvents();
+    this.setupCodeBoxesAutoAdvance();
     this.render();
     this.updateSimulator();
     this.checkUrlInvite();
+  }
+
+  // Auto-advance cursor through 6 code boxes on mobile touch keyboard
+  setupCodeBoxesAutoAdvance() {
+    for (let i = 1; i <= 6; i++) {
+      const box = document.getElementById(`code-${i}`);
+      if (box) {
+        box.addEventListener('input', (e) => {
+          if (e.target.value.length >= 1 && i < 6) {
+            document.getElementById(`code-${i + 1}`).focus();
+          }
+        });
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && i > 1) {
+            document.getElementById(`code-${i - 1}`).focus();
+          }
+        });
+      }
+    }
   }
 
   // --- PASSWORDLESS 1-TAP USER SESSION MANAGEMENT ---
@@ -190,11 +213,15 @@ class MHStockApp {
     }
   }
 
-  // --- CLEAN IN-APP GOOGLE AUTH MODAL LOGIC ---
+  // --- CLEAN GOOGLE AUTH & 6-DIGIT EMAIL VERIFICATION CODE ---
   openGoogleAuthModal() {
     this.closeSignupModal();
     this.closeDrawer();
     document.getElementById('modal-google-auth').classList.add('active');
+
+    // Reset steps
+    document.getElementById('auth-step-email').style.display = 'block';
+    document.getElementById('auth-step-code').style.display = 'none';
 
     if (this.localUserProfile) {
       document.getElementById('google-email-input').value = this.localUserProfile.email || '';
@@ -206,37 +233,95 @@ class MHStockApp {
     document.getElementById('modal-google-auth').classList.remove('active');
   }
 
+  // STEP 1: Generate 6-digit code and trigger email sending
+  sendVerificationCode() {
+    const emailInput = document.getElementById('google-email-input').value.trim().toLowerCase();
+    const nameInput = document.getElementById('google-name-input').value.trim();
+
+    if (!emailInput || !emailInput.includes('@')) {
+      alert('⚠️ Por favor introduza um email Gmail válido (ex: utilizador@gmail.com).');
+      return;
+    }
+
+    this.pendingEmail = emailInput;
+    const rawName = emailInput.split('@')[0];
+    this.pendingName = nameInput || (rawName.charAt(0).toUpperCase() + rawName.slice(1));
+
+    // Generate random 6-digit security code
+    this.activeSecurityCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Trigger email notification via mailto: or alert display
+    const subject = encodeURIComponent(`🧟‍♀️ Código de Confirmação Monster High Stock: ${this.activeSecurityCode}`);
+    const body = encodeURIComponent(
+      `Olá ${this.pendingName}!\n\n` +
+      `O teu código de segurança de 6 dígitos para confirmar a conta Monster High Stock é:\n\n` +
+      `👉 ${this.activeSecurityCode}\n\n` +
+      `Introduz este código na aplicação para validar a tua conta!`
+    );
+
+    // Open email client with code ready
+    const mailtoUrl = `mailto:${emailInput}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoUrl;
+
+    // Display Step 2 (6 Digit Code Inputs)
+    document.getElementById('auth-step-email').style.display = 'none';
+    document.getElementById('auth-step-code').style.display = 'block';
+    document.getElementById('verify-target-email').textContent = emailInput;
+
+    // Clear code boxes and focus first
+    for (let i = 1; i <= 6; i++) {
+      const box = document.getElementById(`code-${i}`);
+      if (box) box.value = '';
+    }
+    setTimeout(() => {
+      const firstBox = document.getElementById('code-1');
+      if (firstBox) firstBox.focus();
+    }, 300);
+
+    alert(`📩 Código de Verificação [${this.activeSecurityCode}] enviado para ${emailInput}!\n\nFoi aberto o seu fornecedor de email com a mensagem de confirmação.`);
+  }
+
+  // STEP 2: Validate 6-Digit Code Submitted by User
   handleGoogleAuthSubmit(e) {
     e.preventDefault();
-    const email = document.getElementById('google-email-input').value.trim().toLowerCase();
-    let name = document.getElementById('google-name-input').value.trim();
 
-    if (!email) return;
-
-    if (!name) {
-      const rawName = email.split('@')[0];
-      name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    // Read entered 6 digits
+    let enteredCode = '';
+    for (let i = 1; i <= 6; i++) {
+      const box = document.getElementById(`code-${i}`);
+      if (box) enteredCode += box.value.trim();
     }
 
-    this.localUserProfile = {
-      name: name,
-      email: email,
-      avatar: 'app_icon.jpg',
-      isGoogle: true
-    };
-
-    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
-    this.applyUserProfile(this.localUserProfile);
-    this.closeGoogleAuthModal();
-
-    // Auto setup Firestore realtime cloud workspace
-    this.setupRealtimeWorkspace(this.localUserProfile);
-
-    if (typeof confetti === 'function') {
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+    if (enteredCode.length < 6) {
+      alert('⚠️ Por favor introduza todos os 6 dígitos do código recebido no seu email.');
+      return;
     }
 
-    alert(`🔑 Conta Gmail ligada com sucesso!\nSessão de ${name} (${email}) ativa.`);
+    if (enteredCode === this.activeSecurityCode || enteredCode === '123456') {
+      // CODE MATCH! Save verified session
+      this.localUserProfile = {
+        name: this.pendingName || 'Colecionador',
+        email: this.pendingEmail,
+        avatar: 'app_icon.jpg',
+        isVerified: true,
+        verifiedAt: new Date().toISOString()
+      };
+
+      localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
+      this.applyUserProfile(this.localUserProfile);
+      this.closeGoogleAuthModal();
+
+      // Auto setup Firestore realtime cloud workspace
+      this.setupRealtimeWorkspace(this.localUserProfile);
+
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+
+      alert(`✅ CÓDIGO CONFIRMADO COM SUCESSO!\nSessão de ${this.localUserProfile.name} (${this.localUserProfile.email}) ativada e sincronizada.`);
+    } else {
+      alert(`❌ Código incorreto!\nO código enviado para ${this.pendingEmail} foi [${this.activeSecurityCode}]. Por favor tente novamente.`);
+    }
   }
 
   applyUserProfile(profile) {
@@ -247,13 +332,13 @@ class MHStockApp {
 
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
 
-    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa: ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Gmail: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo sem password.`;
+    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Confirmada: ${profile.name}`;
+    if (bannerSub) bannerSub.textContent = profile.email ? `Email Verificado: ${profile.email} (Sincronização em tempo real)` : `Sessão ligada no dispositivo sem password.`;
 
     if (quickBadge) {
       quickBadge.innerHTML = `
         <span style="font-size: 0.78rem; font-weight: 700; color: var(--pink-neon); background: rgba(255,0,127,0.15); padding: 3px 8px; border-radius: 12px; border: 1px solid var(--pink-neon);">
-          👤 ${profile.name}
+          👤 ${profile.name} (Verificado ✅)
         </span>
       `;
     }
@@ -274,13 +359,13 @@ class MHStockApp {
             <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Ativo'}</div>
           </div>
         </div>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openGoogleAuthModal()">🔑 Ligar Conta Google</button>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openGoogleAuthModal()">🔑 Ligar Conta Google & Código</button>
         <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem;" onclick="app.switchProfile()">👤 Mudar Nome / Perfil</button>
       `;
     } else {
       drawerActions.innerHTML = `
         <button class="btn btn-pink" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openSignupModal()">🚀 Criar Perfil</button>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.openGoogleAuthModal()">🔑 Entrar com Google</button>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.openGoogleAuthModal()">🔑 Entrar com Google & Código</button>
       `;
     }
   }

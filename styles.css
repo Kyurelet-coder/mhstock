@@ -1010,3 +1010,32 @@ body {
   color: var(--pink-neon);
   font-weight: 700;
 }
+
+/* 6-Digit Verification Code UI */
+.code-inputs-grid {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 18px 0;
+}
+
+.code-box {
+  width: 44px;
+  height: 54px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--pink-neon);
+  background: rgba(13, 8, 20, 0.9);
+  border: 2px solid var(--border-subtle);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.code-box:focus {
+  border-color: var(--pink-neon);
+  box-shadow: 0 0 14px var(--pink-glow);
+  background: rgba(255, 0, 127, 0.1);
+}
+
