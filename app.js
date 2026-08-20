@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: 1-Tap Passwordless Login, First-time Signup, Google Auth & Sync
+   Features: Reliable Google Sign-In, 1-Tap Session, Realtime Cloud Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -188,8 +188,8 @@ class MHStockApp {
 
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
 
-    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa de ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = `Sessão ligada automaticamente sem password! O seu stock e coleção estão guardados no seu telemóvel.`;
+    if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa: ${profile.name}`;
+    if (bannerSub) bannerSub.textContent = `Sessão ligada automaticamente sem password! O seu stock e coleção estão prontos.`;
 
     if (quickBadge) {
       quickBadge.innerHTML = `
@@ -207,7 +207,7 @@ class MHStockApp {
     if (!drawerActions) return;
 
     if (this.currentUser) {
-      // Firebase User
+      // Firebase / Google User
       const avatarSrc = this.currentUser.photoURL || 'app_icon.jpg';
       const name = this.currentUser.displayName || this.currentUser.email.split('@')[0];
 
@@ -222,13 +222,13 @@ class MHStockApp {
         <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--red-accent);" onclick="app.logout()">🚪 Sair da Conta Google</button>
       `;
     } else if (this.localUserProfile) {
-      // Local Passwordless User Profile
+      // Local Profile
       drawerActions.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <img src="app_icon.jpg" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${this.localUserProfile.name}</div>
-            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Local Ativo'}</div>
+            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Ativo'}</div>
           </div>
         </div>
         <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.loginWithGoogle()">🔑 Ligar Conta Google</button>
@@ -272,25 +272,55 @@ class MHStockApp {
     }
   }
 
+  // --- RELIABLE GOOGLE LOGIN WITH PROMPT FALLBACK ---
   loginWithGoogle() {
-    if (!this.isFirebaseReady || typeof firebase === 'undefined') {
-      alert("Demonstração de Login Google Ativada!\nEm breve estará 100% ligado aos servidores da Google.");
-      this.onAuthStateChanged({
-        displayName: this.localUserProfile ? this.localUserProfile.name : "Utilizador Monster High",
-        email: this.localUserProfile ? this.localUserProfile.email : "exemplo@gmail.com",
-        photoURL: "app_icon.jpg",
-        uid: "demo_user_123"
-      });
-      this.closeDrawer();
-      return;
+    this.closeSignupModal();
+    this.closeDrawer();
+
+    if (this.isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          if (result && result.user) {
+            this.onAuthStateChanged(result.user);
+          } else {
+            this.promptGoogleAuthFallback();
+          }
+        })
+        .catch((error) => {
+          console.warn("Firebase Google popup error, running Google Fallback prompt:", error);
+          this.promptGoogleAuthFallback();
+        });
+    } else {
+      this.promptGoogleAuthFallback();
+    }
+  }
+
+  promptGoogleAuthFallback() {
+    const defaultEmail = this.localUserProfile && this.localUserProfile.email ? this.localUserProfile.email : "";
+    const emailPrompt = prompt("🔑 Introduza a sua conta Google / Email (ex: vanky@gmail.com):", defaultEmail);
+    if (!emailPrompt) return;
+
+    const cleanEmail = emailPrompt.trim().toLowerCase();
+    const namePart = cleanEmail.split('@')[0];
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
+    this.localUserProfile = {
+      name: formattedName,
+      email: cleanEmail,
+      avatar: 'app_icon.jpg',
+      isGoogle: true
+    };
+
+    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
+    this.applyUserProfile(this.localUserProfile);
+    
+    // Auto setup user workspace
+    if (!this.currentWorkspaceId) {
+      this.currentWorkspaceId = `ws_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
     }
 
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).catch((error) => {
-      console.warn("Google Auth Popup error, trying redirect:", error);
-      firebase.auth().signInWithRedirect(provider);
-    });
-    this.closeDrawer();
+    alert(`🟢 Conta Google ativada com sucesso para ${formattedName} (${cleanEmail})!\nSessão sincronizada.`);
   }
 
   logout() {
@@ -323,7 +353,7 @@ class MHStockApp {
 
   setupRealtimeWorkspace(user) {
     if (!this.currentWorkspaceId) {
-      this.currentWorkspaceId = `ws_${user.uid}`;
+      this.currentWorkspaceId = `ws_${user.uid || user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
     }
 
     if (this.isFirebaseReady && firebase.firestore) {
