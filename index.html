@@ -21,7 +21,12 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=16">
+  <!-- Firebase SDKs for Google Login & Realtime Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
 
@@ -36,6 +41,12 @@
     </div>
     
     <div class="header-actions">
+      <!-- Google Auth Profile & Shared Workspace Bar -->
+      <div id="user-auth-bar" style="display: flex; align-items: center; gap: 8px;">
+        <button class="btn btn-cyan" id="btn-google-login">🔑 Entrar com o Google</button>
+      </div>
+
+      <button class="btn btn-purple" id="btn-share-header" style="display: none;">👥 Partilhar Conta</button>
       <button class="btn btn-purple" id="btn-batch-header">📦 Novo Lote</button>
       <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
       <button class="btn btn-outline" id="btn-export-csv">📁 CSV</button>
@@ -44,6 +55,18 @@
 
   <main class="container">
     
+    <!-- User Login & Workspace Banner -->
+    <div id="auth-status-banner" style="background: rgba(255, 0, 127, 0.1); border: 1px solid var(--pink-neon); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem;">🔑</span>
+        <div>
+          <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);" id="auth-banner-title">Modo Convidado (Guardado no dispositivo)</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);" id="auth-banner-sub">Faça login com a sua conta Google para sincronizar entre telemóveis e partilhar a conta por email!</div>
+        </div>
+      </div>
+      <button class="btn btn-pink" id="btn-banner-login">🔑 Entrar com o Google</button>
+    </div>
+
     <!-- KPI Summary Dashboard Cards with Total Spent & Total Received -->
     <section class="kpi-grid">
       <div class="kpi-card pink">
@@ -289,6 +312,38 @@
       <span>Adicionar</span>
     </button>
   </nav>
+
+  <!-- Modal: Share Account & Invite Collaborator by Email -->
+  <div class="modal-overlay" id="modal-share">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">👥 Partilhar Conta com Parceiro/Namorada</h3>
+        <button class="close-btn" id="close-share-modal">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Introduza o email da pessoa com quem pretende partilhar a app. Um email de convite com ligação de acesso automático será gerado para ser enviado!
+        </p>
+      </div>
+
+      <form id="share-form">
+        <div class="form-group">
+          <label class="form-label">Email do Colaborador / Namorada *</label>
+          <input type="email" class="form-control" id="share-email-input" placeholder="ex: namorada@gmail.com" required>
+        </div>
+
+        <button type="submit" class="btn btn-cyan" style="width: 100%; font-size: 0.95rem;">✉️ Enviar Convite por Email & Dar Acesso</button>
+      </form>
+
+      <div style="margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+        <label class="form-label" style="color: var(--pink-neon);">📋 Colaboradores com Acesso Ativo:</label>
+        <div id="collaborators-list-container" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+          <!-- List of shared emails -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Trading Card Instagram/TikTok Generator -->
   <div class="modal-overlay" id="modal-card">
@@ -544,7 +599,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));

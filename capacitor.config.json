@@ -1,0 +1,16 @@
+{
+  "appId": "com.monsterhigh.stockmanager",
+  "appName": "MH Stock Manager",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#160D24",
+      "showSpinner": false
+    }
+  }
+}

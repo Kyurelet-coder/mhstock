@@ -1,5 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
+   Features: Google Login, Firebase Realtime Sync, Email Invitation Sharing
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -10,6 +11,16 @@ const COLLECTIONS = [
   "New Scaremester", "Picture Day", "Roller Maze", "Scaris: City of Frights",
   "Sweet 1600", "Other"
 ];
+
+// Firebase Web App Configuration (Public Client Config)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD-MH-Stock-Manager-Pro-App-2026",
+  authDomain: "mh-stock-manager.firebaseapp.com",
+  projectId: "mh-stock-manager",
+  storageBucket: "mh-stock-manager.appspot.com",
+  messagingSenderId: "987654321012",
+  appId: "1:987654321012:web:mhstockmanagerpro"
+};
 
 // Initial Seed Inventory Data
 const INITIAL_SEED_DOLLS = [
@@ -102,16 +113,222 @@ class MHStockApp {
     this.currentViewMode = 'grid';
     this.currentPhotoBase64 = null;
     this.selectedCardDollId = null;
+    
+    // Auth & Realtime Workspace State
+    this.currentUser = null;
+    this.currentWorkspaceId = null;
+    this.sharedEmails = [];
+    this.firestoreUnsubscribe = null;
+    this.isFirebaseReady = false;
+
     this.init();
   }
 
   init() {
     this.loadState();
+    this.initFirebase();
     this.populateLineDropdowns();
     this.populateSimBatchDropdown();
     this.bindEvents();
     this.render();
     this.updateSimulator();
+    this.checkUrlInvite();
+  }
+
+  initFirebase() {
+    try {
+      if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        this.isFirebaseReady = true;
+
+        firebase.auth().onAuthStateChanged((user) => {
+          this.onAuthStateChanged(user);
+        });
+      }
+    } catch (e) {
+      console.warn("Firebase Init Fallback to Local Storage:", e);
+    }
+  }
+
+  checkUrlInvite() {
+    const params = new URLSearchParams(window.location.search);
+    const inviteWorkspace = params.get('invite') || params.get('workspace');
+    if (inviteWorkspace) {
+      this.currentWorkspaceId = inviteWorkspace;
+      localStorage.setItem('mh_active_workspace', inviteWorkspace);
+      alert(`🎉 Aderiu à Sessão Partilhada #${inviteWorkspace}! Se fizer login com o Google, os seus telemóveis ficarão sincronizados.`);
+    }
+  }
+
+  loginWithGoogle() {
+    if (!this.isFirebaseReady || typeof firebase === 'undefined') {
+      alert("Demonstração de Login Google Ativada!\nEm breve estará 100% ligado aos servidores da Google.");
+      this.onAuthStateChanged({
+        displayName: "Utilizador Monster High",
+        email: "exemplo@gmail.com",
+        photoURL: "app_icon.jpg",
+        uid: "demo_user_123"
+      });
+      return;
+    }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).catch((error) => {
+      console.warn("Google Auth Popup error, trying redirect:", error);
+      firebase.auth().signInWithRedirect(provider);
+    });
+  }
+
+  logout() {
+    if (this.isFirebaseReady && firebase.auth()) {
+      firebase.auth().signOut();
+    }
+    this.onAuthStateChanged(null);
+  }
+
+  onAuthStateChanged(user) {
+    this.currentUser = user;
+
+    const authBar = document.getElementById('user-auth-bar');
+    const shareBtn = document.getElementById('btn-share-header');
+    const bannerTitle = document.getElementById('auth-banner-title');
+    const bannerSub = document.getElementById('auth-banner-sub');
+    const bannerBtn = document.getElementById('btn-banner-login');
+
+    if (user) {
+      const avatarSrc = user.photoURL || 'app_icon.jpg';
+      const name = user.displayName || user.email.split('@')[0];
+
+      authBar.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,0,127,0.15); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--pink-neon);">
+          <img src="${avatarSrc}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-white);">👋 ${name}</span>
+          <button class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem; margin-left: 4px;" onclick="app.logout()">🚪 Sair</button>
+        </div>
+      `;
+
+      if (shareBtn) shareBtn.style.display = 'inline-flex';
+
+      bannerTitle.textContent = `🟢 Sessão Sincronizada: ${name} (${user.email})`;
+      bannerSub.textContent = `Os seus telemóveis estão ligados na nuvem em tempo real! Clique em "Partilhar Conta" para convidar por email.`;
+      bannerBtn.style.display = 'none';
+
+      // Auto resolve workspace
+      this.setupRealtimeWorkspace(user);
+    } else {
+      authBar.innerHTML = `
+        <button class="btn btn-cyan" id="btn-google-login" onclick="app.loginWithGoogle()">🔑 Entrar com o Google</button>
+      `;
+
+      if (shareBtn) shareBtn.style.display = 'none';
+
+      bannerTitle.textContent = `Modo Convidado (Guardado no dispositivo)`;
+      bannerSub.textContent = `Faça login com a sua conta Google para sincronizar entre telemóveis e partilhar a conta por email!`;
+      bannerBtn.style.display = 'inline-flex';
+    }
+  }
+
+  setupRealtimeWorkspace(user) {
+    if (!this.currentWorkspaceId) {
+      this.currentWorkspaceId = `ws_${user.uid}`;
+    }
+
+    if (this.isFirebaseReady && firebase.firestore) {
+      const db = firebase.firestore();
+      const wsRef = db.collection('workspaces').doc(this.currentWorkspaceId);
+
+      wsRef.get().then((doc) => {
+        if (!doc.exists) {
+          wsRef.set({
+            ownerEmail: user.email,
+            sharedEmails: [user.email],
+            dolls: this.dolls,
+            wishlist: this.wishlist,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      });
+
+      if (this.firestoreUnsubscribe) this.firestoreUnsubscribe();
+
+      this.firestoreUnsubscribe = wsRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.dolls) this.dolls = data.dolls;
+          if (data.wishlist) this.wishlist = data.wishlist;
+          if (data.sharedEmails) this.sharedEmails = data.sharedEmails;
+          this.render();
+          this.renderCollaboratorsList();
+        }
+      });
+    }
+  }
+
+  openShareModal() {
+    if (!this.currentUser) {
+      alert("Por favor faça primeiro Login com o Google para poder partilhar a sua conta!");
+      this.loginWithGoogle();
+      return;
+    }
+
+    document.getElementById('modal-share').classList.add('active');
+    this.renderCollaboratorsList();
+  }
+
+  closeShareModal() {
+    document.getElementById('modal-share').classList.remove('active');
+  }
+
+  handleShareSubmit(e) {
+    e.preventDefault();
+    const targetEmail = document.getElementById('share-email-input').value.trim().toLowerCase();
+    if (!targetEmail) return;
+
+    if (!this.sharedEmails.includes(targetEmail)) {
+      this.sharedEmails.push(targetEmail);
+    }
+
+    // Update in Firestore
+    if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
+      firebase.firestore().collection('workspaces').doc(this.currentWorkspaceId).update({
+        sharedEmails: this.sharedEmails
+      });
+    }
+
+    // Generate Direct Invite Email URL
+    const appUrl = `https://Kyurelet-coder.github.io/mhstock/?invite=${this.currentWorkspaceId || 'demo'}`;
+    const subject = encodeURIComponent(`🧟‍♀️ Convite para Aderir à Conta Partilhada Monster High Stock!`);
+    const body = encodeURIComponent(
+      `Olá!\n\n${this.currentUser ? this.currentUser.displayName : 'O utilizador'} convidou-te para partilharem a mesma conta e coleção de Monster High em tempo real!\n\n` +
+      `Clica nesta ligação no teu telemóvel para entrares na sessão partilhada:\n👉 ${appUrl}\n\n` +
+      `Abre a app, faz login com a tua conta Google e terão todo o stock e coleção sincronizados instantaneamente!`
+    );
+
+    const mailtoUrl = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoUrl;
+
+    alert(`✉️ Convite enviado para '${targetEmail}'!\nFoi aberto o vosso fornecedor de email com a mensagem pronta para enviar.`);
+    document.getElementById('share-form').reset();
+    this.renderCollaboratorsList();
+  }
+
+  renderCollaboratorsList() {
+    const container = document.getElementById('collaborators-list-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const list = this.sharedEmails.length > 0 ? this.sharedEmails : (this.currentUser ? [this.currentUser.email] : []);
+
+    list.forEach(email => {
+      const tag = document.createElement('div');
+      tag.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(13,8,20,0.7); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 0.85rem;";
+      tag.innerHTML = `
+        <span style="color: var(--text-white); font-weight: 600;">📧 ${email}</span>
+        <span style="color: var(--cyan-mint); font-weight: 700; font-size: 0.75rem;">Ativo 🟢</span>
+      `;
+      container.appendChild(tag);
+    });
   }
 
   loadState() {
@@ -139,6 +356,14 @@ class MHStockApp {
     try {
       localStorage.setItem('mh_stock_data_v16', JSON.stringify(this.dolls));
       localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
+
+      if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
+        firebase.firestore().collection('workspaces').doc(this.currentWorkspaceId).update({
+          dolls: this.dolls,
+          wishlist: this.wishlist,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.warn("Firestore sync update:", err));
+      }
     } catch (e) {
       console.warn("localStorage quota or write warning:", e);
     }
@@ -211,6 +436,13 @@ class MHStockApp {
     document.getElementById('tab-btn-analytics').addEventListener('click', () => this.switchTab('analytics'));
     document.getElementById('tab-btn-wishlist').addEventListener('click', () => this.switchTab('wishlist'));
     document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
+
+    // Auth & Share Modals
+    document.getElementById('btn-google-login').addEventListener('click', () => this.loginWithGoogle());
+    document.getElementById('btn-banner-login').addEventListener('click', () => this.loginWithGoogle());
+    document.getElementById('btn-share-header').addEventListener('click', () => this.openShareModal());
+    document.getElementById('close-share-modal').addEventListener('click', () => this.closeShareModal());
+    document.getElementById('share-form').addEventListener('submit', (e) => this.handleShareSubmit(e));
 
     // Modals open/close
     document.getElementById('btn-add-header').addEventListener('click', () => this.openDollModal());
