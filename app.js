@@ -115,7 +115,7 @@ class MHStockApp {
   }
 
   loadState() {
-    const savedDolls = localStorage.getItem('mh_stock_data_v14');
+    const savedDolls = localStorage.getItem('mh_stock_data_v15');
     if (savedDolls) {
       try { 
         this.dolls = JSON.parse(savedDolls);
@@ -136,8 +136,12 @@ class MHStockApp {
   }
 
   saveState() {
-    localStorage.setItem('mh_stock_data_v14', JSON.stringify(this.dolls));
-    localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
+    try {
+      localStorage.setItem('mh_stock_data_v15', JSON.stringify(this.dolls));
+      localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
+    } catch (e) {
+      console.warn("localStorage quota or write warning:", e);
+    }
     this.populateSimBatchDropdown();
     this.render();
   }
@@ -222,7 +226,7 @@ class MHStockApp {
     document.getElementById('btn-download-card').addEventListener('click', () => this.downloadTradingCard());
     document.getElementById('btn-export-csv').addEventListener('click', () => this.exportCSV());
 
-    // Photo Input change
+    // Photo Input change with auto-canvas compression
     document.getElementById('form-photo-input').addEventListener('change', (e) => this.handlePhotoUpload(e));
 
     // Dynamic visibility of selling price fields based on selected status
@@ -262,7 +266,51 @@ class MHStockApp {
     document.getElementById('nav-add').addEventListener('click', () => this.openDollModal());
   }
 
-  // --- DYNAMIC FORM FIELD VISIBILITY FOR COLLECTION vs RESALE DOLLS ---
+  // --- AUTOMATIC CANVAS COMPRESSION FOR ULTRA-FAST BASE64 STORAGE ---
+  handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Compress to lightweight 75% JPEG (~40KB)
+      this.currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+      const previewCont = document.getElementById('photo-preview-container');
+      const previewImg = document.getElementById('photo-preview-img');
+      previewImg.src = this.currentPhotoBase64;
+      previewCont.style.display = 'block';
+
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
+  }
+
   onFormStatusChange() {
     const status = document.getElementById('form-status').value;
     const sellGroup = document.getElementById('form-sell-group');
@@ -327,21 +375,6 @@ class MHStockApp {
     document.getElementById('view-table-btn').classList.toggle('active', mode === 'table');
     document.getElementById('dolls-grid-container').style.display = mode === 'grid' ? 'block' : 'none';
     document.getElementById('dolls-table-container').style.display = mode === 'table' ? 'block' : 'none';
-  }
-
-  handlePhotoUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      this.currentPhotoBase64 = evt.target.result;
-      const previewCont = document.getElementById('photo-preview-container');
-      const previewImg = document.getElementById('photo-preview-img');
-      previewImg.src = this.currentPhotoBase64;
-      previewCont.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
   }
 
   getBatchAmortizationMap() {
@@ -1302,6 +1335,7 @@ class MHStockApp {
 
 // Clear old cache keys from localStorage if present
 try {
+  localStorage.removeItem('mh_stock_data_v14');
   localStorage.removeItem('mh_stock_data_v13');
   localStorage.removeItem('mh_stock_data_v12');
   localStorage.removeItem('mh_stock_data_v11');
