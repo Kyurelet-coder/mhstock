@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Reliable Google Sign-In, 1-Tap Session, Realtime Cloud Sync
+   Features: Dedicated Google Login Modal, 1-Tap Session, Realtime Cloud Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -180,6 +180,50 @@ class MHStockApp {
     this.closeSignupModal();
   }
 
+  // --- GOOGLE AUTH MODAL LOGIC ---
+  openGoogleAuthModal() {
+    this.closeSignupModal();
+    this.closeDrawer();
+    document.getElementById('modal-google-auth').classList.add('active');
+
+    if (this.localUserProfile) {
+      document.getElementById('google-name-input').value = this.localUserProfile.name || '';
+      document.getElementById('google-email-input').value = this.localUserProfile.email || '';
+    }
+  }
+
+  closeGoogleAuthModal() {
+    document.getElementById('modal-google-auth').classList.remove('active');
+  }
+
+  handleGoogleAuthSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('google-name-input').value.trim();
+    const email = document.getElementById('google-email-input').value.trim().toLowerCase();
+
+    if (!name || !email) return;
+
+    this.localUserProfile = {
+      name: name,
+      email: email,
+      avatar: 'app_icon.jpg',
+      isGoogle: true
+    };
+
+    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
+    this.applyUserProfile(this.localUserProfile);
+    this.closeGoogleAuthModal();
+
+    // Auto setup user workspace
+    this.currentWorkspaceId = `ws_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+    }
+
+    alert(`🔑 Conta Google ligada com sucesso!\nSessão de ${name} (${email}) ativa.`);
+  }
+
   applyUserProfile(profile) {
     const welcomeHeader = document.getElementById('header-user-welcome');
     const bannerTitle = document.getElementById('auth-banner-title');
@@ -189,7 +233,7 @@ class MHStockApp {
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
 
     if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa: ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = `Sessão ligada automaticamente sem password! O seu stock e coleção estão prontos.`;
+    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Google: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo.`;
 
     if (quickBadge) {
       quickBadge.innerHTML = `
@@ -206,23 +250,7 @@ class MHStockApp {
     const drawerActions = document.getElementById('drawer-user-actions');
     if (!drawerActions) return;
 
-    if (this.currentUser) {
-      // Firebase / Google User
-      const avatarSrc = this.currentUser.photoURL || 'app_icon.jpg';
-      const name = this.currentUser.displayName || this.currentUser.email.split('@')[0];
-
-      drawerActions.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${name}</div>
-            <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.currentUser.email}</div>
-          </div>
-        </div>
-        <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--red-accent);" onclick="app.logout()">🚪 Sair da Conta Google</button>
-      `;
-    } else if (this.localUserProfile) {
-      // Local Profile
+    if (this.localUserProfile) {
       drawerActions.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <img src="app_icon.jpg" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
@@ -231,13 +259,13 @@ class MHStockApp {
             <div style="font-size: 0.72rem; color: var(--cyan-mint);">${this.localUserProfile.email || 'Perfil Ativo'}</div>
           </div>
         </div>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.loginWithGoogle()">🔑 Ligar Conta Google</button>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openGoogleAuthModal()">🔑 Ligar Conta Google</button>
         <button class="btn btn-outline" style="width: 100%; font-size: 0.78rem;" onclick="app.switchProfile()">👤 Mudar Nome / Perfil</button>
       `;
     } else {
       drawerActions.innerHTML = `
         <button class="btn btn-pink" style="width: 100%; font-size: 0.85rem; margin-bottom: 6px;" onclick="app.openSignupModal()">🚀 Criar Perfil</button>
-        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.loginWithGoogle()">🔑 Entrar com Google</button>
+        <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.openGoogleAuthModal()">🔑 Entrar com Google</button>
       `;
     }
   }
@@ -272,55 +300,8 @@ class MHStockApp {
     }
   }
 
-  // --- RELIABLE GOOGLE LOGIN WITH PROMPT FALLBACK ---
   loginWithGoogle() {
-    this.closeSignupModal();
-    this.closeDrawer();
-
-    if (this.isFirebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-          if (result && result.user) {
-            this.onAuthStateChanged(result.user);
-          } else {
-            this.promptGoogleAuthFallback();
-          }
-        })
-        .catch((error) => {
-          console.warn("Firebase Google popup error, running Google Fallback prompt:", error);
-          this.promptGoogleAuthFallback();
-        });
-    } else {
-      this.promptGoogleAuthFallback();
-    }
-  }
-
-  promptGoogleAuthFallback() {
-    const defaultEmail = this.localUserProfile && this.localUserProfile.email ? this.localUserProfile.email : "";
-    const emailPrompt = prompt("🔑 Introduza a sua conta Google / Email (ex: vanky@gmail.com):", defaultEmail);
-    if (!emailPrompt) return;
-
-    const cleanEmail = emailPrompt.trim().toLowerCase();
-    const namePart = cleanEmail.split('@')[0];
-    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-
-    this.localUserProfile = {
-      name: formattedName,
-      email: cleanEmail,
-      avatar: 'app_icon.jpg',
-      isGoogle: true
-    };
-
-    localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
-    this.applyUserProfile(this.localUserProfile);
-    
-    // Auto setup user workspace
-    if (!this.currentWorkspaceId) {
-      this.currentWorkspaceId = `ws_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    }
-
-    alert(`🟢 Conta Google ativada com sucesso para ${formattedName} (${cleanEmail})!\nSessão sincronizada.`);
+    this.openGoogleAuthModal();
   }
 
   logout() {
@@ -557,6 +538,10 @@ class MHStockApp {
     // Signup Form submit
     document.getElementById('signup-form').addEventListener('submit', (e) => this.handleSignupSubmit(e));
 
+    // Google Auth Form submit & close
+    document.getElementById('google-auth-form').addEventListener('submit', (e) => this.handleGoogleAuthSubmit(e));
+    document.getElementById('close-google-auth-modal').addEventListener('click', () => this.closeGoogleAuthModal());
+
     // Android Hamburger Drawer Menu Events
     document.getElementById('btn-hamburger-menu').addEventListener('click', () => this.openDrawer());
     document.getElementById('close-drawer-btn').addEventListener('click', () => this.closeDrawer());
@@ -590,7 +575,6 @@ class MHStockApp {
     document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
 
     // Auth & Share Modals
-    document.getElementById('btn-banner-login').addEventListener('click', () => this.loginWithGoogle());
     document.getElementById('close-share-modal').addEventListener('click', () => this.closeShareModal());
     document.getElementById('share-form').addEventListener('submit', (e) => this.handleShareSubmit(e));
 
@@ -1354,7 +1338,7 @@ class MHStockApp {
         ${photoHtml}
         <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white); margin-bottom: 4px;">${d.name}</div>
         <div style="font-size: 0.75rem; color: var(--cyan-mint); font-weight: 600;">${d.line || 'Monster High'}</div>
-        ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : ''}
+        ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;"><ctrl42> Penteado: ${d.hairstyleDifficulty}</div>` : ''}
         ${d.batchId ? `<div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">📦 Lote: ${d.batchId}</div>` : ''}
         
         <div style="margin-top: 8px; font-size: 0.8rem;">
