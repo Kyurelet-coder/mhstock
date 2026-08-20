@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Pure Local Storage, Device Nickname, Before/After Restoration Photos
+   Features: Bottom Navigation Exclusively, Local Storage, Before/After Photos
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -214,13 +214,6 @@ class MHStockApp {
     document.getElementById('view-grid-btn').addEventListener('click', () => this.setViewMode('grid'));
     document.getElementById('view-table-btn').addEventListener('click', () => this.setViewMode('table'));
 
-    // Main Section Tabs
-    document.getElementById('tab-btn-stock').addEventListener('click', () => this.switchTab('stock'));
-    document.getElementById('tab-btn-shelf').addEventListener('click', () => this.switchTab('shelf'));
-    document.getElementById('tab-btn-analytics').addEventListener('click', () => this.switchTab('analytics'));
-    document.getElementById('tab-btn-wishlist').addEventListener('click', () => this.switchTab('wishlist'));
-    document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
-
     // Modals open/close
     document.getElementById('close-doll-modal').addEventListener('click', () => this.closeDollModal());
     document.getElementById('close-batch-modal').addEventListener('click', () => this.closeBatchModal());
@@ -265,11 +258,12 @@ class MHStockApp {
     document.getElementById('sim-input-tot-units').addEventListener('input', () => this.updateSimulator());
     document.getElementById('sim-input-pers-units').addEventListener('input', () => this.updateSimulator());
 
-    // Android Bottom Navigation
+    // Bottom Navigation Bar Items (Exclusive Place for App Navigation)
     document.getElementById('nav-stock').addEventListener('click', () => this.switchTab('stock', 'nav-stock'));
     document.getElementById('nav-shelf').addEventListener('click', () => this.switchTab('shelf', 'nav-shelf'));
     document.getElementById('nav-analytics').addEventListener('click', () => this.switchTab('analytics', 'nav-analytics'));
     document.getElementById('nav-wishlist').addEventListener('click', () => this.switchTab('wishlist', 'nav-wishlist'));
+    document.getElementById('nav-simulator').addEventListener('click', () => this.switchTab('simulator', 'nav-simulator'));
   }
 
   // --- AUTOMATIC CANVAS COMPRESSION FOR ULTRA-FAST BASE64 STORAGE ---
@@ -371,7 +365,10 @@ class MHStockApp {
   switchTab(tabName, navId = null) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-    if (navId) document.getElementById(navId).classList.add('active');
+    if (navId) {
+      const navEl = document.getElementById(navId);
+      if (navEl) navEl.classList.add('active');
+    }
 
     document.getElementById('section-stock-view').style.display = tabName === 'stock' ? 'block' : 'none';
     document.getElementById('section-shelf-view').style.display = tabName === 'shelf' ? 'block' : 'none';
@@ -651,7 +648,6 @@ class MHStockApp {
       badgeHtml = `<span class="badge badge-stock">🟢 Em Stock</span>`;
     }
 
-    // Photo Display: Side-by-side Before & After grid if restoration photos exist, or main photo!
     let photosHtml = '';
     if (d.photoBeforeUrl || d.photoAfterUrl) {
       const beforeImg = d.photoBeforeUrl || d.photoUrl;

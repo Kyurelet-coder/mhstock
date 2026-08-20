@@ -21,11 +21,11 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=30">
+  <link rel="stylesheet" href="styles.css?v=31">
 </head>
 <body>
 
-  <!-- App Header with Clean Brand & Device Nickname Badge (No Sidebar Drawer) -->
+  <!-- App Header with Clean Brand & Device Nickname Badge -->
   <header class="app-header">
     <div class="header-left">
       <div class="brand-container">
@@ -82,16 +82,6 @@
         <div class="kpi-value" id="kpi-amort-pct">0%</div>
         <div class="kpi-sub">Custo de Coleção Amortizado</div>
       </div>
-    </section>
-
-    <!-- Main Navigation Tabs -->
-    <section style="display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;">
-      <button class="btn btn-pink" id="tab-btn-stock">🏠 Stock & Revenda</button>
-      <button class="btn btn-outline" id="tab-btn-shelf">🔮 Estante Virtual</button>
-      <button class="btn btn-outline" id="tab-btn-analytics">📊 Gráficos & Analytics</button>
-      <button class="btn btn-outline" id="tab-btn-wishlist">🎯 Wishlist / Caça</button>
-      <button class="btn btn-outline" id="tab-btn-simulator">🧮 Simulador</button>
-      <button class="btn btn-cyan" id="tab-btn-batch" onclick="app.openBatchModal()">📦 Registar Lote</button>
     </section>
 
     <!-- SECTION 1: Stock & Inventory View (Resale & Sold Items Only) -->
@@ -262,7 +252,7 @@
 
   </main>
 
-  <!-- Mobile Bottom Navigation (Android Touch Optimized) -->
+  <!-- Mobile & Desktop Navigation (Exclusively in Bottom Navigation Bar) -->
   <nav class="mobile-nav">
     <button class="nav-item active" id="nav-stock">
       <span class="nav-icon">🏠</span>
@@ -282,6 +272,11 @@
     <button class="nav-item" id="nav-wishlist">
       <span class="nav-icon">🎯</span>
       <span>Wishlist</span>
+    </button>
+
+    <button class="nav-item" id="nav-simulator">
+      <span class="nav-icon">🧮</span>
+      <span>Simulador</span>
     </button>
 
     <button class="nav-item" id="nav-add" onclick="app.openAddChoiceModal()">
@@ -619,7 +614,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=30"></script>
+  <script src="app.js?v=31"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
