@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Clean Mobile Header Greeting, Bottom Nav Only, Before/After Photos,
+   Features: Main Photo Display on Shelf, Before/After in Details Modal,
              Image Crop & Centering Controls, New Collections & Transit Status
    ========================================================================== */
 
@@ -704,23 +704,18 @@ class MHStockApp {
     }
 
     let photosHtml = '';
-    if (d.photoBeforeUrl || d.photoAfterUrl) {
-      const beforeImg = d.photoBeforeUrl || d.photoUrl;
-      const afterImg = d.photoAfterUrl || d.photoUrl;
+    const mainPhoto = d.photoUrl || d.photoAfterUrl || d.photoBeforeUrl;
+    const hasRestoration = (d.photoBeforeUrl || d.photoAfterUrl);
+
+    if (mainPhoto) {
       photosHtml = `
-        <div class="before-after-grid">
-          <div class="before-after-box">
-            ${beforeImg ? `<img src="${beforeImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.75rem;">Sem foto</div>'}
-            <span class="photo-label-badge badge-label-before">📷 Antes</span>
-          </div>
-          <div class="before-after-box">
-            ${afterImg ? `<img src="${afterImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.75rem;">Sem foto</div>'}
-            <span class="photo-label-badge badge-label-after">✨ Depois</span>
-          </div>
+        <div style="position: relative;">
+          <img src="${mainPhoto}" class="doll-photo-thumb" alt="${d.name}">
+          ${hasRestoration ? `<span class="photo-label-badge badge-label-after" style="position: absolute; top: 8px; right: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.8);">🧼 Restauro</span>` : ''}
         </div>
       `;
-    } else if (d.photoUrl) {
-      photosHtml = `<img src="${d.photoUrl}" class="doll-photo-thumb" alt="${d.name}">`;
+    } else {
+      photosHtml = `<div class="shelf-doll-img-placeholder" style="height: 160px; margin-bottom: 10px; border-radius: var(--radius-sm);">🧟‍♀️</div>`;
     }
 
     const hairstyleTag = d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 4px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : '';
@@ -803,7 +798,7 @@ class MHStockApp {
         ${d.status === 'personal' ? `<button class="btn btn-cyan" onclick="app.moveToResale(${d.id})">🟢 Pôr à Venda</button>` : ''}
         ${d.status === 'personal' ? `<button class="btn btn-purple" onclick="app.generateTradingCard(${d.id})">🖼️ Trading Card</button>` : ''}
         ${(d.status === 'in_stock' || d.status === 'in_transit') ? `<button class="btn btn-purple" onclick="app.moveToPersonal(${d.id})">🟣 Coleção</button>` : ''}
-        <button class="btn btn-outline" onclick="app.openDollModal(${d.id})">✏️ Editar</button>
+        <button class="btn btn-outline" onclick="app.openDollModal(${d.id})">🔍 Detalhes / Restauro</button>
         <button class="btn btn-outline" style="color: var(--red-accent);" onclick="app.deleteDoll(${d.id})">🗑️</button>
       </div>
     `;
@@ -849,7 +844,7 @@ class MHStockApp {
         <td>${d.soldPrice ? '€' + d.soldPrice.toFixed(2) : '-'}</td>
         <td>${eff}</td>
         <td>
-          <button class="btn btn-outline" style="padding: 4px 8px;" onclick="app.openDollModal(${d.id})">✏️</button>
+          <button class="btn btn-outline" style="padding: 4px 8px;" onclick="app.openDollModal(${d.id})">🔍</button>
           <button class="btn btn-outline" style="padding: 4px 8px; color: var(--red-accent);" onclick="app.deleteDoll(${d.id})">🗑️</button>
         </td>
       `;
@@ -1053,23 +1048,16 @@ class MHStockApp {
       item.onclick = () => this.openDollModal(d.id);
 
       let photosHtml = '';
-      if (d.photoBeforeUrl || d.photoAfterUrl) {
-        const beforeImg = d.photoBeforeUrl || d.photoUrl;
-        const afterImg = d.photoAfterUrl || d.photoUrl;
+      const mainPhoto = d.photoUrl || d.photoAfterUrl || d.photoBeforeUrl;
+      const hasRestoration = (d.photoBeforeUrl || d.photoAfterUrl);
+
+      if (mainPhoto) {
         photosHtml = `
-          <div class="before-after-grid" style="margin-bottom: 8px;">
-            <div class="before-after-box" style="height: 110px;">
-              ${beforeImg ? `<img src="${beforeImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.7rem;">Antes</div>'}
-              <span class="photo-label-badge badge-label-before">📷 Antes</span>
-            </div>
-            <div class="before-after-box" style="height: 110px;">
-              ${afterImg ? `<img src="${afterImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.7rem;">Depois</div>'}
-              <span class="photo-label-badge badge-label-after">✨ Depois</span>
-            </div>
+          <div style="position: relative;">
+            <img src="${mainPhoto}" class="shelf-doll-img" alt="${d.name}">
+            ${hasRestoration ? `<span class="photo-label-badge badge-label-after" style="position: absolute; top: 8px; right: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.8);">🧼 Restauro</span>` : ''}
           </div>
         `;
-      } else if (d.photoUrl) {
-        photosHtml = `<img src="${d.photoUrl}" class="shelf-doll-img" alt="${d.name}">`;
       } else {
         photosHtml = `<div class="shelf-doll-img-placeholder">🧟‍♀️</div>`;
       }
@@ -1087,7 +1075,7 @@ class MHStockApp {
 
         <div style="display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap;" onclick="event.stopPropagation();">
           <button class="btn btn-cyan" style="flex: 1; padding: 5px 6px; font-size: 0.73rem;" onclick="app.moveToResale(${d.id})">🟢 Pôr à Venda</button>
-          <button class="btn btn-outline" style="padding: 5px 6px; font-size: 0.73rem;" onclick="app.openDollModal(${d.id})">✏️ Editar</button>
+          <button class="btn btn-outline" style="padding: 5px 6px; font-size: 0.73rem;" onclick="app.openDollModal(${d.id})">🔍 Detalhes / Restauro</button>
           <button class="btn btn-purple" style="padding: 5px 6px; font-size: 0.73rem;" onclick="app.generateTradingCard(${d.id})">🖼️ Card</button>
         </div>
       `;
@@ -1219,7 +1207,7 @@ class MHStockApp {
     document.getElementById('preview-after-cont').style.display = 'none';
 
     if (editId) {
-      title.textContent = 'Editar Boneca / Fotos Antes & Depois';
+      title.textContent = 'Detalhes da Boneca / Restauro & Fotos Antes & Depois';
       const d = this.dolls.find(item => item.id === editId);
       if (d) {
         document.getElementById('form-name').value = d.name || '';
