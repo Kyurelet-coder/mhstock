@@ -577,6 +577,12 @@ body {
   border: 1px solid var(--gold-accent);
 }
 
+.badge-transit {
+  background: rgba(255, 193, 7, 0.25);
+  color: #ffd54f;
+  border: 1px solid #ffc107;
+}
+
 .doll-line {
   font-size: 0.8rem;
   color: var(--text-muted);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mh-stock-v38';
+const CACHE_NAME = 'mh-stock-v39';
 const ASSETS = [
   './',
   './index.html',
@@ -39,7 +39,6 @@ self.addEventListener('fetch', (e) => {
 
 /* --- ADVANCED PWA SERVICE WORKER HANDLERS --- */
 
-// 1. Background Sync Handler
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-mh-stock-data') {
     event.waitUntil(
@@ -48,7 +47,6 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// 2. Periodic Background Sync Handler
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'update-stock-kpis') {
     event.waitUntil(
@@ -57,7 +55,6 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-// 3. Push Notifications Handler
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.text() : 'Nova atualização Monster High Stock!';
   const options = {
@@ -72,7 +69,6 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// 4. Notification Click Handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(

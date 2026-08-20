@@ -1,13 +1,14 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Clean Mobile Header Greeting, Bottom Nav Only, Before/After Photos
+   Features: Clean Mobile Header Greeting, Bottom Nav Only, Before/After Photos,
+             Image Crop & Centering Controls, New Collections & Transit Status
    ========================================================================== */
 
 const COLLECTIONS = [
   "Creeproduction", "Signature (G1)", "Signature (G3)", "Skullector",
-  "13 Wishes", "Boo York, Boo York", "Budget Dolls", "Dead Tired",
-  "Dot Dead Gorgeous", "Fang Vote", "Freak Du Chic", "Freaky Fusion",
-  "Great Scarrier Reef", "Haunted", "I <3 Fashion", "Monster Fest",
+  "Frights, Camera, Action!", "Ever After High", "13 Wishes", "Boo York, Boo York",
+  "Budget Dolls", "Dead Tired", "Dot Dead Gorgeous", "Fang Vote", "Freak Du Chic",
+  "Freaky Fusion", "Great Scarrier Reef", "Haunted", "I <3 Fashion", "Monster Fest",
   "New Scaremester", "Picture Day", "Roller Maze", "Scaris: City of Frights",
   "Sweet 1600", "Other"
 ];
@@ -19,10 +20,16 @@ class MHStockApp {
     this.nickname = null;
     this.currentViewMode = 'grid';
 
-    // Temporary photo variables for forms
+    // Temporary photo variables & raw image objects for live crop alignment
     this.currentPhotoBase64 = null;
     this.currentPhotoBeforeBase64 = null;
     this.currentPhotoAfterBase64 = null;
+
+    this.rawImg = {
+      main: null,
+      before: null,
+      after: null
+    };
 
     this.selectedCardDollId = null;
 
@@ -215,10 +222,22 @@ class MHStockApp {
     document.getElementById('btn-add-wishlist').addEventListener('click', () => this.openWishlistModal());
     document.getElementById('btn-download-card').addEventListener('click', () => this.downloadTradingCard());
 
-    // Photo Inputs change with auto-canvas compression
+    // Photo Inputs change with auto-canvas compression & centering
     document.getElementById('form-photo-input').addEventListener('change', (e) => this.handlePhotoUpload(e, 'main'));
     document.getElementById('form-photo-before').addEventListener('change', (e) => this.handlePhotoUpload(e, 'before'));
     document.getElementById('form-photo-after').addEventListener('change', (e) => this.handlePhotoUpload(e, 'after'));
+
+    // Real-time Photo Alignment & Zoom Sliders
+    const alignMainY = document.getElementById('align-slider-main-y');
+    const alignMainZoom = document.getElementById('align-slider-main-zoom');
+    if (alignMainY) alignMainY.addEventListener('input', () => this.recropPhoto('main'));
+    if (alignMainZoom) alignMainZoom.addEventListener('input', () => this.recropPhoto('main'));
+
+    const alignBeforeY = document.getElementById('align-slider-before-y');
+    if (alignBeforeY) alignBeforeY.addEventListener('input', () => this.recropPhoto('before'));
+
+    const alignAfterY = document.getElementById('align-slider-after-y');
+    if (alignAfterY) alignAfterY.addEventListener('input', () => this.recropPhoto('after'));
 
     // Dynamic visibility of selling price fields based on selected status
     document.getElementById('form-status').addEventListener('change', () => this.onFormStatusChange());
@@ -249,7 +268,7 @@ class MHStockApp {
     document.getElementById('sim-input-tot-units').addEventListener('input', () => this.updateSimulator());
     document.getElementById('sim-input-pers-units').addEventListener('input', () => this.updateSimulator());
 
-    // Bottom Navigation Bar Items (Exclusive Place for App Navigation)
+    // Bottom Navigation Bar Items
     document.getElementById('nav-stock').addEventListener('click', () => this.switchTab('stock', 'nav-stock'));
     document.getElementById('nav-shelf').addEventListener('click', () => this.switchTab('shelf', 'nav-shelf'));
     document.getElementById('nav-analytics').addEventListener('click', () => this.switchTab('analytics', 'nav-analytics'));
@@ -257,7 +276,7 @@ class MHStockApp {
     document.getElementById('nav-simulator').addEventListener('click', () => this.switchTab('simulator', 'nav-simulator'));
   }
 
-  // --- AUTOMATIC CANVAS COMPRESSION FOR ULTRA-FAST BASE64 STORAGE ---
+  // --- AUTOMATIC CANVAS COMPRESSION & REAL-TIME CROP CENTERING ---
   handlePhotoUpload(e, targetType = 'main') {
     const file = e.target.files[0];
     if (!file) return;
@@ -266,48 +285,87 @@ class MHStockApp {
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxDim = 600;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        }
-      } else {
-        if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-
-      if (targetType === 'main') {
-        this.currentPhotoBase64 = compressedBase64;
-        document.getElementById('photo-preview-img').src = compressedBase64;
-        document.getElementById('photo-preview-container').style.display = 'block';
-      } else if (targetType === 'before') {
-        this.currentPhotoBeforeBase64 = compressedBase64;
-        document.getElementById('preview-before-img').src = compressedBase64;
-        document.getElementById('preview-before-cont').style.display = 'block';
-      } else if (targetType === 'after') {
-        this.currentPhotoAfterBase64 = compressedBase64;
-        document.getElementById('preview-after-img').src = compressedBase64;
-        document.getElementById('preview-after-cont').style.display = 'block';
-      }
-
+      this.rawImg[targetType] = img;
+      this.recropPhoto(targetType);
       URL.revokeObjectURL(url);
     };
 
     img.src = url;
+  }
+
+  setPhotoPreset(targetType, preset) {
+    const sliderY = document.getElementById(`align-slider-${targetType}-y`);
+    if (!sliderY) return;
+
+    if (preset === 'top') sliderY.value = 15;
+    else if (preset === 'center') sliderY.value = 50;
+    else if (preset === 'bottom') sliderY.value = 85;
+
+    this.recropPhoto(targetType);
+  }
+
+  recropPhoto(targetType = 'main') {
+    const img = this.rawImg[targetType];
+    if (!img) return;
+
+    const sliderY = document.getElementById(`align-slider-${targetType}-y`);
+    const sliderZoom = document.getElementById(`align-slider-${targetType}-zoom`);
+
+    const posYPct = sliderY ? parseFloat(sliderY.value) : 30;
+    const zoomVal = sliderZoom ? (parseFloat(sliderZoom.value) / 100) : 1.0;
+
+    const valYSpan = document.getElementById(`align-val-${targetType}-y`);
+    const valZoomSpan = document.getElementById(`align-val-${targetType}-zoom`);
+
+    if (valYSpan) valYSpan.textContent = `${posYPct}%`;
+    if (valZoomSpan) valZoomSpan.textContent = `${zoomVal.toFixed(1)}x`;
+
+    const targetWidth = 600;
+    const targetHeight = 600;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+
+    const baseAspect = targetWidth / targetHeight;
+    const imgAspect = img.width / img.height;
+
+    let drawW, drawH;
+
+    if (imgAspect > baseAspect) {
+      drawH = targetHeight * zoomVal;
+      drawW = drawH * imgAspect;
+    } else {
+      drawW = targetWidth * zoomVal;
+      drawH = drawW / imgAspect;
+    }
+
+    const maxOverflowY = Math.max(0, drawH - targetHeight);
+    const offsetY = (posYPct / 100) * maxOverflowY;
+
+    const maxOverflowX = Math.max(0, drawW - targetWidth);
+    const offsetX = 0.5 * maxOverflowX;
+
+    ctx.fillStyle = '#0D0814';
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(img, -offsetX, -offsetY, drawW, drawH);
+
+    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.78);
+
+    if (targetType === 'main') {
+      this.currentPhotoBase64 = compressedBase64;
+      document.getElementById('photo-preview-img').src = compressedBase64;
+      document.getElementById('photo-preview-container').style.display = 'block';
+    } else if (targetType === 'before') {
+      this.currentPhotoBeforeBase64 = compressedBase64;
+      document.getElementById('preview-before-img').src = compressedBase64;
+      document.getElementById('preview-before-cont').style.display = 'block';
+    } else if (targetType === 'after') {
+      this.currentPhotoAfterBase64 = compressedBase64;
+      document.getElementById('preview-after-img').src = compressedBase64;
+      document.getElementById('preview-after-cont').style.display = 'block';
+    }
   }
 
   onFormStatusChange() {
@@ -320,7 +378,7 @@ class MHStockApp {
       soldGroup.style.display = 'none';
       document.getElementById('form-sell').value = '0.00';
       document.getElementById('form-sold').value = '';
-    } else if (status === 'in_stock') {
+    } else if (status === 'in_stock' || status === 'in_transit') {
       sellGroup.style.display = 'block';
       soldGroup.style.display = 'none';
       document.getElementById('form-sold').value = '';
@@ -467,6 +525,7 @@ class MHStockApp {
   renderKPIs(batchMap) {
     const personal = this.dolls.filter(d => d.status === 'personal');
     const stock = this.dolls.filter(d => d.status === 'in_stock');
+    const transit = this.dolls.filter(d => d.status === 'in_transit');
     const sold = this.dolls.filter(d => d.status === 'sold');
 
     const totalSpent = this.dolls.reduce((sum, d) => sum + (d.purchasePrice || 0), 0);
@@ -483,6 +542,7 @@ class MHStockApp {
     });
 
     const stockInvestment = stock.reduce((sum, d) => sum + (d.purchasePrice || 0), 0);
+    const transitInvestment = transit.reduce((sum, d) => sum + (d.purchasePrice || 0), 0);
 
     const totalPersonalCostRaw = personal.reduce((sum, d) => sum + (d.purchasePrice || 0), 0);
     let globalAmortPct = 0;
@@ -502,6 +562,9 @@ class MHStockApp {
 
     document.getElementById('kpi-stock-count').textContent = `${stock.length} itens`;
     document.getElementById('kpi-stock-sub').textContent = `Investimento: €${stockInvestment.toFixed(2)}`;
+
+    document.getElementById('kpi-transit-count').textContent = `${transit.length} itens`;
+    document.getElementById('kpi-transit-sub').textContent = `Custo: €${transitInvestment.toFixed(2)}`;
 
     document.getElementById('kpi-profit-total').textContent = `${totalProfit >= 0 ? '+' : ''}€${totalProfit.toFixed(2)}`;
     document.getElementById('kpi-profit-sub').textContent = `${sold.length} itens vendidos`;
@@ -527,8 +590,8 @@ class MHStockApp {
     const filterSt = document.getElementById('filter-status').value;
 
     const personalItems = items.filter(d => d.status === 'personal');
-    const stockLotItems = items.filter(d => d.status === 'in_stock' && d.batchId);
-    const stockIndividualItems = items.filter(d => d.status === 'in_stock' && !d.batchId);
+    const stockLotItems = items.filter(d => (d.status === 'in_stock' || d.status === 'in_transit') && d.batchId);
+    const stockIndividualItems = items.filter(d => (d.status === 'in_stock' || d.status === 'in_transit') && !d.batchId);
     const soldItems = items.filter(d => d.status === 'sold');
 
     if (filterSt === 'personal') {
@@ -551,7 +614,7 @@ class MHStockApp {
     if (stockLotItems.length > 0) {
       const lotHeader = document.createElement('div');
       lotHeader.className = 'main-section-header pink-accent';
-      lotHeader.innerHTML = `<h2>📦 LOTES (${stockLotItems.length} unidades em stock)</h2>`;
+      lotHeader.innerHTML = `<h2>📦 LOTES (${stockLotItems.length} unidades em stock / trânsito)</h2>`;
       container.appendChild(lotHeader);
 
       const groupedBatches = {};
@@ -578,7 +641,7 @@ class MHStockApp {
             <div class="batch-section-title">📦 Lote: ${bId}</div>
             <div class="batch-section-metrics">
               <span class="batch-metric-tag">💰 Custo Total Lote: €${bInfo.totalCost.toFixed(2)}</span>
-              <span class="batch-metric-tag">🟢 ${stockCount} Revenda em Stock</span>
+              <span class="batch-metric-tag">🟢 ${stockCount} Stock / A caminho</span>
               <span class="batch-metric-tag" style="color: var(--pink-neon); font-weight: 700;">
                 ${effCost === 0 ? '✨ COLEÇÃO AMORTIZADA A 0.00€!' : 'Custo Ef. Coleção: €' + effCost.toFixed(2)}
               </span>
@@ -596,7 +659,7 @@ class MHStockApp {
     if (stockIndividualItems.length > 0) {
       const indHeader = document.createElement('div');
       indHeader.className = 'main-section-header cyan-accent';
-      indHeader.innerHTML = `<h2>🎴 BONECAS INDIVIDUAIS (${stockIndividualItems.length} unidades em stock)</h2>`;
+      indHeader.innerHTML = `<h2>🎴 BONECAS INDIVIDUAIS (${stockIndividualItems.length} unidades)</h2>`;
       container.appendChild(indHeader);
 
       const indGrid = document.createElement('div');
@@ -632,6 +695,8 @@ class MHStockApp {
         effCost = Math.max(0, effCost - batchMap[d.batchId].soldRevenue);
       }
       effCostStr = effCost === 0 ? `✨ 0.00€` : `€${effCost.toFixed(2)}`;
+    } else if (d.status === 'in_transit') {
+      badgeHtml = `<span class="badge badge-transit">🟡 A caminho</span>`;
     } else if (d.status === 'sold') {
       badgeHtml = `<span class="badge badge-sold">🔵 Vendido</span>`;
     } else {
@@ -682,7 +747,7 @@ class MHStockApp {
           <span class="metric-val" style="color: var(--gold-accent); font-weight: 800;">${profit >= 0 ? '+' : ''}€${profit.toFixed(2)}</span>
         </div>
       `;
-    } else if (d.status === 'in_stock') {
+    } else if (d.status === 'in_stock' || d.status === 'in_transit') {
       const estProfit = (d.sellingPrice || 0) - (d.purchasePrice || 0);
       metricsHtml = `
         <div class="metric-item">
@@ -733,11 +798,11 @@ class MHStockApp {
       </div>
 
       <div class="card-actions">
-        ${d.status === 'in_stock' ? `<button class="btn btn-cyan" onclick="app.openSellModal(${d.id})">💰 Vender</button>` : ''}
-        ${d.status === 'in_stock' ? `<button class="btn btn-outline btn-copy-ad" onclick="app.copyVintedAd(${d.id})">📋 Copiar Anúncio</button>` : ''}
+        ${(d.status === 'in_stock' || d.status === 'in_transit') ? `<button class="btn btn-cyan" onclick="app.openSellModal(${d.id})">💰 Vender</button>` : ''}
+        ${(d.status === 'in_stock' || d.status === 'in_transit') ? `<button class="btn btn-outline btn-copy-ad" onclick="app.copyVintedAd(${d.id})">📋 Copiar Anúncio</button>` : ''}
         ${d.status === 'personal' ? `<button class="btn btn-cyan" onclick="app.moveToResale(${d.id})">🟢 Pôr à Venda</button>` : ''}
         ${d.status === 'personal' ? `<button class="btn btn-purple" onclick="app.generateTradingCard(${d.id})">🖼️ Trading Card</button>` : ''}
-        ${d.status === 'in_stock' ? `<button class="btn btn-purple" onclick="app.moveToPersonal(${d.id})">🟣 Coleção</button>` : ''}
+        ${(d.status === 'in_stock' || d.status === 'in_transit') ? `<button class="btn btn-purple" onclick="app.moveToPersonal(${d.id})">🟣 Coleção</button>` : ''}
         <button class="btn btn-outline" onclick="app.openDollModal(${d.id})">✏️ Editar</button>
         <button class="btn btn-outline" style="color: var(--red-accent);" onclick="app.deleteDoll(${d.id})">🗑️</button>
       </div>
@@ -765,6 +830,11 @@ class MHStockApp {
         ? `<img src="${d.photoAfterUrl || d.photoUrl}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover;">`
         : '🧟‍♀️';
 
+      let statusStr = '🟢 Stock';
+      if (d.status === 'personal') statusStr = '🟣 Coleção';
+      else if (d.status === 'in_transit') statusStr = '🟡 A caminho';
+      else if (d.status === 'sold') statusStr = '🔵 Vendido';
+
       tr.innerHTML = `
         <td>${d.id}</td>
         <td>${imgHtml}</td>
@@ -772,7 +842,7 @@ class MHStockApp {
         <td>${d.character || '-'}</td>
         <td>${d.line || '-'}</td>
         <td>${d.condition || '-'}</td>
-        <td>${d.status === 'personal' ? '🟣 Coleção' : (d.status === 'sold' ? '🔵 Vendido' : '🟢 Stock')}</td>
+        <td>${statusStr}</td>
         <td>${d.hairstyleDifficulty || '-'}</td>
         <td>€${(d.purchasePrice || 0).toFixed(2)}</td>
         <td>${d.sellingPrice ? '€' + d.sellingPrice.toFixed(2) : '-'}</td>
@@ -1142,6 +1212,8 @@ class MHStockApp {
     this.currentPhotoBeforeBase64 = null;
     this.currentPhotoAfterBase64 = null;
 
+    this.rawImg = { main: null, before: null, after: null };
+
     document.getElementById('photo-preview-container').style.display = 'none';
     document.getElementById('preview-before-cont').style.display = 'none';
     document.getElementById('preview-after-cont').style.display = 'none';
@@ -1166,16 +1238,28 @@ class MHStockApp {
           this.currentPhotoBase64 = d.photoUrl;
           document.getElementById('photo-preview-img').src = d.photoUrl;
           document.getElementById('photo-preview-container').style.display = 'block';
+          
+          const imgMain = new Image();
+          imgMain.onload = () => { this.rawImg.main = imgMain; };
+          imgMain.src = d.photoUrl;
         }
         if (d.photoBeforeUrl) {
           this.currentPhotoBeforeBase64 = d.photoBeforeUrl;
           document.getElementById('preview-before-img').src = d.photoBeforeUrl;
           document.getElementById('preview-before-cont').style.display = 'block';
+
+          const imgBefore = new Image();
+          imgBefore.onload = () => { this.rawImg.before = imgBefore; };
+          imgBefore.src = d.photoBeforeUrl;
         }
         if (d.photoAfterUrl) {
           this.currentPhotoAfterBase64 = d.photoAfterUrl;
           document.getElementById('preview-after-img').src = d.photoAfterUrl;
           document.getElementById('preview-after-cont').style.display = 'block';
+
+          const imgAfter = new Image();
+          imgAfter.onload = () => { this.rawImg.after = imgAfter; };
+          imgAfter.src = d.photoAfterUrl;
         }
       }
     } else {

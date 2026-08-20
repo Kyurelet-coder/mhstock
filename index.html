@@ -22,7 +22,7 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=38">
+  <link rel="stylesheet" href="styles.css?v=39">
 </head>
 <body>
 
@@ -76,6 +76,12 @@
         <div class="kpi-value" id="kpi-stock-count">0 itens</div>
         <div class="kpi-sub" id="kpi-stock-sub">Investimento: €0.00</div>
       </div>
+
+      <div class="kpi-card gold">
+        <div class="kpi-title">🟡 A Caminho</div>
+        <div class="kpi-value" id="kpi-transit-count">0 itens</div>
+        <div class="kpi-sub" id="kpi-transit-sub">Encomendas pendentes</div>
+      </div>
       
       <div class="kpi-card pink">
         <div class="kpi-title">🧮 Absorção de Custos</div>
@@ -97,6 +103,7 @@
           <select class="select-custom" id="filter-status">
             <option value="ALL">Todos os Estados</option>
             <option value="in_stock">🟢 Em Stock</option>
+            <option value="in_transit">🟡 A caminho</option>
             <option value="personal">🟣 Coleção Própria</option>
             <option value="sold">🔵 Vendidos</option>
           </select>
@@ -352,7 +359,7 @@
     </div>
   </div>
 
-  <!-- Modal: Add / Edit Doll with Before & After Restoration Photos -->
+  <!-- Modal: Add / Edit Doll with Real-Time Image Centering Controls & Before/After Restoration Photos -->
   <div class="modal-overlay" id="modal-doll">
     <div class="modal-container">
       <div class="modal-header">
@@ -368,11 +375,37 @@
           <input type="text" class="form-control" id="form-name" placeholder="Ex: Frankie Stein Creeproduction" required>
         </div>
 
+        <!-- Main Photo Input & Real-Time Centering / Crop Controls -->
         <div class="form-group">
           <label class="form-label">📷 Foto Principal da Boneca (Upload / Câmara Android)</label>
           <input type="file" accept="image/*" class="form-control" id="form-photo-input">
-          <div id="photo-preview-container" style="margin-top: 6px; display: none;">
-            <img id="photo-preview-img" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid var(--pink-neon);">
+          
+          <div id="photo-preview-container" style="margin-top: 8px; display: none; background: rgba(13,8,20,0.7); padding: 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <img id="photo-preview-img" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 2px solid var(--pink-neon);">
+              <div style="flex: 1;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--pink-neon); margin-bottom: 4px;">🎯 Centralizar & Alinhar Enquadramento</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="app.setPhotoPreset('main', 'top')">👤 Rosto (Topo)</button>
+                  <button type="button" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="app.setPhotoPreset('main', 'center')">🧍 Centro</button>
+                  <button type="button" class="btn btn-outline" style="padding: 3px 6px; font-size: 0.7rem;" onclick="app.setPhotoPreset('main', 'bottom')">👠 Pés (Baixo)</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Posição Vertical (Foco):</span>
+                <span id="align-val-main-y">30%</span>
+              </div>
+              <input type="range" min="0" max="100" value="30" class="range-slider" id="align-slider-main-y">
+
+              <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                <span>Aproximação (Zoom):</span>
+                <span id="align-val-main-zoom">1.0x</span>
+              </div>
+              <input type="range" min="100" max="250" value="100" step="5" class="range-slider" id="align-slider-main-zoom">
+            </div>
           </div>
         </div>
 
@@ -403,6 +436,7 @@
             <label class="form-label">Estado de Venda</label>
             <select class="form-control" id="form-status">
               <option value="in_stock">🟢 Em Stock (Revenda)</option>
+              <option value="in_transit">🟡 A caminho</option>
               <option value="personal">🟣 Coleção Própria (0€)</option>
               <option value="sold">🔵 Vendido</option>
             </select>
@@ -435,16 +469,32 @@
             <div class="form-group" style="margin: 0;">
               <label class="form-label" style="color: var(--pink-neon); font-size: 0.78rem; font-weight: 700;">📷 Foto ANTES do Restauro:</label>
               <input type="file" accept="image/*" class="form-control" id="form-photo-before" style="font-size: 0.72rem; padding: 6px;">
-              <div id="preview-before-cont" style="margin-top: 4px; display: none;">
-                <img id="preview-before-img" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--pink-neon);">
+              
+              <div id="preview-before-cont" style="margin-top: 6px; display: none; background: rgba(13,8,20,0.7); padding: 6px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <img id="preview-before-img" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--pink-neon);">
+                  <div style="flex: 1; font-size: 0.68rem;">
+                    <button type="button" class="btn btn-outline" style="padding: 2px 4px; font-size: 0.65rem;" onclick="app.setPhotoPreset('before', 'top')">👤 Rosto</button>
+                    <button type="button" class="btn btn-outline" style="padding: 2px 4px; font-size: 0.65rem;" onclick="app.setPhotoPreset('before', 'center')">🧍 Centro</button>
+                  </div>
+                </div>
+                <input type="range" min="0" max="100" value="30" class="range-slider" id="align-slider-before-y" style="margin-top: 4px;">
               </div>
             </div>
 
             <div class="form-group" style="margin: 0;">
               <label class="form-label" style="color: var(--cyan-mint); font-size: 0.78rem; font-weight: 700;">✨ Foto DEPOIS do Restauro:</label>
               <input type="file" accept="image/*" class="form-control" id="form-photo-after" style="font-size: 0.72rem; padding: 6px;">
-              <div id="preview-after-cont" style="margin-top: 4px; display: none;">
-                <img id="preview-after-img" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--cyan-mint);">
+              
+              <div id="preview-after-cont" style="margin-top: 6px; display: none; background: rgba(13,8,20,0.7); padding: 6px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <img id="preview-after-img" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--cyan-mint);">
+                  <div style="flex: 1; font-size: 0.68rem;">
+                    <button type="button" class="btn btn-outline" style="padding: 2px 4px; font-size: 0.65rem;" onclick="app.setPhotoPreset('after', 'top')">👤 Rosto</button>
+                    <button type="button" class="btn btn-outline" style="padding: 2px 4px; font-size: 0.65rem;" onclick="app.setPhotoPreset('after', 'center')">🧍 Centro</button>
+                  </div>
+                </div>
+                <input type="range" min="0" max="100" value="30" class="range-slider" id="align-slider-after-y" style="margin-top: 4px;">
               </div>
             </div>
           </div>
@@ -609,7 +659,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=38"></script>
+  <script src="app.js?v=39"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -617,7 +667,7 @@
           registration.update();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=38').catch(err => console.log('SW error:', err));
+      navigator.serviceWorker.register('sw.js?v=39').catch(err => console.log('SW error:', err));
     }
   </script>
 </body>
