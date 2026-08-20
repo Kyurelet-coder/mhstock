@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mh-stock-v31';
+const CACHE_NAME = 'mh-stock-v32';
 const ASSETS = [
   './',
   './index.html',
@@ -23,7 +23,7 @@ self.addEventListener('activate', (e) => {
           if (key !== CACHE_NAME) return caches.delete(key);
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
