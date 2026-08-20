@@ -115,7 +115,7 @@ class MHStockApp {
   }
 
   loadState() {
-    const savedDolls = localStorage.getItem('mh_stock_data_v15');
+    const savedDolls = localStorage.getItem('mh_stock_data_v16');
     if (savedDolls) {
       try { 
         this.dolls = JSON.parse(savedDolls);
@@ -137,7 +137,7 @@ class MHStockApp {
 
   saveState() {
     try {
-      localStorage.setItem('mh_stock_data_v15', JSON.stringify(this.dolls));
+      localStorage.setItem('mh_stock_data_v16', JSON.stringify(this.dolls));
       localStorage.setItem('mh_wishlist_data_v1', JSON.stringify(this.wishlist));
     } catch (e) {
       console.warn("localStorage quota or write warning:", e);
@@ -716,6 +716,7 @@ class MHStockApp {
       <div class="card-actions">
         ${d.status === 'in_stock' ? `<button class="btn btn-cyan" onclick="app.openSellModal(${d.id})">💰 Vender</button>` : ''}
         ${d.status === 'in_stock' ? `<button class="btn btn-outline btn-copy-ad" onclick="app.copyVintedAd(${d.id})">📋 Copiar Anúncio</button>` : ''}
+        ${d.status === 'personal' ? `<button class="btn btn-cyan" onclick="app.moveToResale(${d.id})">🟢 Pôr à Venda</button>` : ''}
         ${d.status === 'personal' ? `<button class="btn btn-purple" onclick="app.generateTradingCard(${d.id})">🖼️ Trading Card</button>` : ''}
         ${d.status === 'in_stock' ? `<button class="btn btn-purple" onclick="app.moveToPersonal(${d.id})">🟣 Coleção</button>` : ''}
         <button class="btn btn-outline" onclick="app.openDollModal(${d.id})">✏️ Editar</button>
@@ -975,9 +976,10 @@ class MHStockApp {
           <span style="color: var(--pink-neon); font-weight: 800;">${effCost === 0 ? '✨ 0.00€ AMORTIZADA' : 'Custo Ef.: €' + effCost.toFixed(2)}</span>
         </div>
 
-        <div style="display: flex; gap: 4px; margin-top: 10px;" onclick="event.stopPropagation();">
-          <button class="btn btn-outline" style="flex: 1; padding: 5px 8px; font-size: 0.75rem;" onclick="app.openDollModal(${d.id})">✏️ Fotos & Detalhes</button>
-          <button class="btn btn-purple" style="padding: 5px 8px; font-size: 0.75rem;" onclick="app.generateTradingCard(${d.id})">🖼️ Card</button>
+        <div style="display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap;" onclick="event.stopPropagation();">
+          <button class="btn btn-cyan" style="flex: 1; padding: 5px 6px; font-size: 0.73rem;" onclick="app.moveToResale(${d.id})">🟢 Pôr à Venda</button>
+          <button class="btn btn-outline" style="padding: 5px 6px; font-size: 0.73rem;" onclick="app.openDollModal(${d.id})">✏️ Editar</button>
+          <button class="btn btn-purple" style="padding: 5px 6px; font-size: 0.73rem;" onclick="app.generateTradingCard(${d.id})">🖼️ Card</button>
         </div>
       `;
 
@@ -1187,6 +1189,24 @@ class MHStockApp {
     }
   }
 
+  // --- MOVE PERSONAL COLLECTION DOLL TO RESALE STOCK ---
+  moveToResale(id) {
+    const d = this.dolls.find(item => item.id === id);
+    if (!d) return;
+
+    const defaultEst = d.purchasePrice ? (d.purchasePrice * 1.5).toFixed(2) : "45.00";
+    const estPriceStr = prompt(`Qual o Preço Estimado de Venda (€) para colocar '${d.name}' à venda?`, defaultEst);
+    if (estPriceStr === null) return; // User cancelled
+
+    const estPrice = parseFloat(estPriceStr.replace(',', '.')) || 0;
+    d.status = 'in_stock';
+    d.sellingPrice = estPrice;
+    d.soldPrice = null;
+
+    this.saveState();
+    alert(`🟢 '${d.name}' foi colocada à venda por €${estPrice.toFixed(2)} e movida para a aba Stock & Revenda!`);
+  }
+
   deleteDoll(id) {
     if (confirm('Tem a certeza que pretende eliminar esta boneca?')) {
       this.dolls = this.dolls.filter(d => d.id !== id);
@@ -1335,6 +1355,7 @@ class MHStockApp {
 
 // Clear old cache keys from localStorage if present
 try {
+  localStorage.removeItem('mh_stock_data_v15');
   localStorage.removeItem('mh_stock_data_v14');
   localStorage.removeItem('mh_stock_data_v13');
   localStorage.removeItem('mh_stock_data_v12');
