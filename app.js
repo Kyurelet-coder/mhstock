@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: In-App Clean Google Account Connection, 1-Tap Session, Cloud Sync
+   Features: Direct Gmail Login, Automatic Name Extraction, Realtime Cloud Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -162,14 +162,21 @@ class MHStockApp {
 
   handleSignupSubmit(e) {
     e.preventDefault();
-    const name = document.getElementById('signup-name-input').value.trim();
-    const email = document.getElementById('signup-email-input').value.trim();
+    const inputVal = document.getElementById('signup-email-input').value.trim();
+    if (!inputVal) return;
 
-    if (!name) return;
+    let email = '';
+    let name = inputVal;
+
+    if (inputVal.includes('@')) {
+      email = inputVal.toLowerCase();
+      const rawName = email.split('@')[0];
+      name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    }
 
     this.localUserProfile = {
       name: name,
-      email: email || '',
+      email: email,
       avatar: 'app_icon.jpg',
       createdAt: new Date().toISOString()
     };
@@ -183,15 +190,15 @@ class MHStockApp {
     }
   }
 
-  // --- CLEAN IN-APP GOOGLE AUTH MODAL LOGIC (ZERO BROKEN POPUPS) ---
+  // --- CLEAN IN-APP GOOGLE AUTH MODAL LOGIC ---
   openGoogleAuthModal() {
     this.closeSignupModal();
     this.closeDrawer();
     document.getElementById('modal-google-auth').classList.add('active');
 
     if (this.localUserProfile) {
-      document.getElementById('google-name-input').value = this.localUserProfile.name || '';
       document.getElementById('google-email-input').value = this.localUserProfile.email || '';
+      document.getElementById('google-name-input').value = this.localUserProfile.name || '';
     }
   }
 
@@ -201,10 +208,15 @@ class MHStockApp {
 
   handleGoogleAuthSubmit(e) {
     e.preventDefault();
-    const name = document.getElementById('google-name-input').value.trim();
     const email = document.getElementById('google-email-input').value.trim().toLowerCase();
+    let name = document.getElementById('google-name-input').value.trim();
 
-    if (!name || !email) return;
+    if (!email) return;
+
+    if (!name) {
+      const rawName = email.split('@')[0];
+      name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    }
 
     this.localUserProfile = {
       name: name,
@@ -224,7 +236,7 @@ class MHStockApp {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
     }
 
-    alert(`🔑 Conta Google ligada com sucesso!\nSessão de ${name} (${email}) ativa.`);
+    alert(`🔑 Conta Gmail ligada com sucesso!\nSessão de ${name} (${email}) ativa.`);
   }
 
   applyUserProfile(profile) {
@@ -236,7 +248,7 @@ class MHStockApp {
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
 
     if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa: ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Google: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo sem password.`;
+    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Gmail: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo sem password.`;
 
     if (quickBadge) {
       quickBadge.innerHTML = `

@@ -21,11 +21,14 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+  <!-- Official Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <!-- Firebase Core & Realtime Firestore Cloud Sync -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
 
@@ -95,7 +98,7 @@
     </nav>
 
     <div class="drawer-footer">
-      <div>Monster High Stock Manager v22.0</div>
+      <div>Monster High Stock Manager v23.0</div>
       <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
     </div>
   </aside>
@@ -394,22 +397,22 @@
       <div style="text-align: center; margin-bottom: 16px;">
         <img src="app_icon.jpg" style="width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--cyan-mint); margin-bottom: 8px;">
         <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Introduza a sua conta Google (Gmail) para sincronizar o stock e a coleção em tempo real entre dispositivos.
+          Introduza o seu email Gmail para sincronizar o stock e a coleção em tempo real entre telemóveis.
         </p>
       </div>
 
       <form id="google-auth-form">
         <div class="form-group">
-          <label class="form-label">Nome de Utilizador / Alcunha *</label>
-          <input type="text" class="form-control" id="google-name-input" placeholder="Ex: Colecionador" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Conta Google / Email Gmail *</label>
+          <label class="form-label">A sua Conta Gmail *</label>
           <input type="email" class="form-control" id="google-email-input" placeholder="ex: utilizador@gmail.com" required>
         </div>
 
-        <button type="submit" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">✨ Confirmar e Sincronizar com a Conta Google</button>
+        <div class="form-group">
+          <label class="form-label">Nome / Alcunha (Opcional)</label>
+          <input type="text" class="form-control" id="google-name-input" placeholder="Ex: Colecionador">
+        </div>
+
+        <button type="submit" class="btn btn-cyan" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">✨ Confirmar e Entrar com a Conta Gmail</button>
       </form>
     </div>
   </div>
@@ -430,13 +433,8 @@
 
       <form id="signup-form">
         <div class="form-group">
-          <label class="form-label">O seu Nome / Alcunha *</label>
-          <input type="text" class="form-control" id="signup-name-input" placeholder="Ex: Colecionador" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Email (para partilhar com o parceiro)</label>
-          <input type="email" class="form-control" id="signup-email-input" placeholder="ex: utilizador@gmail.com">
+          <label class="form-label">O seu Email Gmail ou Nome *</label>
+          <input type="text" class="form-control" id="signup-email-input" placeholder="ex: utilizador@gmail.com ou Nome" required>
         </div>
 
         <button type="submit" class="btn btn-pink" style="width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;">🚀 Entrar no Monster High Stock (Sem Password)</button>
@@ -731,7 +729,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=22"></script>
+  <script src="app.js?v=23"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
