@@ -21,12 +21,11 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- Firebase SDKs for Google Login & Realtime Cloud Sync -->
+  <!-- Firebase Core & Realtime Firestore Cloud Sync -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 
@@ -96,7 +95,7 @@
     </nav>
 
     <div class="drawer-footer">
-      <div>Monster High Stock Manager v21.0</div>
+      <div>Monster High Stock Manager v22.0</div>
       <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
     </div>
   </aside>
@@ -218,9 +217,7 @@
 
       <!-- Divided Sections Render Container -->
       <section id="dolls-grid-container">
-        <!-- Section 1: LOTES DE REVENDA -->
-        <!-- Section 2: BONECAS INDIVIDUAIS DE REVENDA -->
-        <!-- Section 3: BONECAS VENDIDAS -->
+        <!-- Dynamic Dolls Grid Rendered Here -->
       </section>
 
       <!-- Doll Table View (Hidden by default) -->
@@ -734,7 +731,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));

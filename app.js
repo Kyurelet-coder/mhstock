@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Dedicated Google Login Modal, 1-Tap Session, Realtime Cloud Sync
+   Features: In-App Clean Google Account Connection, 1-Tap Session, Cloud Sync
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -12,7 +12,7 @@ const COLLECTIONS = [
   "Sweet 1600", "Other"
 ];
 
-// Firebase Web App Configuration (Public Client Config)
+// Firebase Web App Configuration (Public Client Config for Firestore Sync)
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyD-MH-Stock-Manager-Pro-App-2026",
   authDomain: "mh-stock-manager.firebaseapp.com",
@@ -116,7 +116,6 @@ class MHStockApp {
     
     // User Session State
     this.localUserProfile = null;
-    this.currentUser = null;
     this.currentWorkspaceId = null;
     this.sharedEmails = [];
     this.firestoreUnsubscribe = null;
@@ -178,9 +177,13 @@ class MHStockApp {
     localStorage.setItem('mh_user_profile_v1', JSON.stringify(this.localUserProfile));
     this.applyUserProfile(this.localUserProfile);
     this.closeSignupModal();
+
+    if (email) {
+      this.setupRealtimeWorkspace(this.localUserProfile);
+    }
   }
 
-  // --- GOOGLE AUTH MODAL LOGIC ---
+  // --- CLEAN IN-APP GOOGLE AUTH MODAL LOGIC (ZERO BROKEN POPUPS) ---
   openGoogleAuthModal() {
     this.closeSignupModal();
     this.closeDrawer();
@@ -214,8 +217,8 @@ class MHStockApp {
     this.applyUserProfile(this.localUserProfile);
     this.closeGoogleAuthModal();
 
-    // Auto setup user workspace
-    this.currentWorkspaceId = `ws_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    // Auto setup Firestore realtime cloud workspace
+    this.setupRealtimeWorkspace(this.localUserProfile);
 
     if (typeof confetti === 'function') {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
@@ -233,7 +236,7 @@ class MHStockApp {
     if (welcomeHeader) welcomeHeader.textContent = `👋 Olá, ${profile.name}!`;
 
     if (bannerTitle) bannerTitle.textContent = `🟢 Sessão Ativa: ${profile.name}`;
-    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Google: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo.`;
+    if (bannerSub) bannerSub.textContent = profile.email ? `Conta Google: ${profile.email} (Sincronizada sem password)` : `Sessão ligada no dispositivo sem password.`;
 
     if (quickBadge) {
       quickBadge.innerHTML = `
@@ -281,9 +284,9 @@ class MHStockApp {
         firebase.initializeApp(FIREBASE_CONFIG);
         this.isFirebaseReady = true;
 
-        firebase.auth().onAuthStateChanged((user) => {
-          this.onAuthStateChanged(user);
-        });
+        if (this.localUserProfile && this.localUserProfile.email) {
+          this.setupRealtimeWorkspace(this.localUserProfile);
+        }
       }
     } catch (e) {
       console.warn("Firebase Init Fallback to Local Storage:", e);
@@ -305,47 +308,26 @@ class MHStockApp {
   }
 
   logout() {
-    if (this.isFirebaseReady && firebase.auth()) {
-      firebase.auth().signOut();
-    }
-    this.currentUser = null;
-    if (this.localUserProfile) {
-      this.applyUserProfile(this.localUserProfile);
-    } else {
-      this.onAuthStateChanged(null);
-    }
+    this.localUserProfile = null;
+    localStorage.removeItem('mh_user_profile_v1');
+    this.openSignupModal();
     this.closeDrawer();
   }
 
-  onAuthStateChanged(user) {
-    this.currentUser = user;
+  setupRealtimeWorkspace(profile) {
+    if (!profile || !profile.email) return;
 
-    if (user) {
-      const name = user.displayName || user.email.split('@')[0];
-      this.applyUserProfile({ name: name, email: user.email, avatar: user.photoURL });
-      this.setupRealtimeWorkspace(user);
-    } else {
-      if (this.localUserProfile) {
-        this.applyUserProfile(this.localUserProfile);
-      }
-    }
-    this.updateDrawerUserCard();
-  }
+    this.currentWorkspaceId = `ws_${profile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-  setupRealtimeWorkspace(user) {
-    if (!this.currentWorkspaceId) {
-      this.currentWorkspaceId = `ws_${user.uid || user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    }
-
-    if (this.isFirebaseReady && firebase.firestore) {
+    if (this.isFirebaseReady && firebase.firestore && this.currentWorkspaceId) {
       const db = firebase.firestore();
       const wsRef = db.collection('workspaces').doc(this.currentWorkspaceId);
 
       wsRef.get().then((doc) => {
         if (!doc.exists) {
           wsRef.set({
-            ownerEmail: user.email,
-            sharedEmails: [user.email],
+            ownerEmail: profile.email,
+            sharedEmails: [profile.email],
             dolls: this.dolls,
             wishlist: this.wishlist,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -406,7 +388,7 @@ class MHStockApp {
       });
     }
 
-    const senderName = this.localUserProfile ? this.localUserProfile.name : (this.currentUser ? this.currentUser.displayName : 'O teu parceiro');
+    const senderName = this.localUserProfile ? this.localUserProfile.name : 'O teu parceiro';
 
     // Generate Direct Invite Email URL
     const appUrl = `https://Kyurelet-coder.github.io/mhstock/?invite=${this.currentWorkspaceId || 'demo'}`;
@@ -431,7 +413,7 @@ class MHStockApp {
 
     container.innerHTML = '';
 
-    const currentEmail = this.currentUser ? this.currentUser.email : (this.localUserProfile ? this.localUserProfile.email : '');
+    const currentEmail = this.localUserProfile ? this.localUserProfile.email : '';
     const list = this.sharedEmails.length > 0 ? this.sharedEmails : (currentEmail ? [currentEmail] : []);
 
     list.forEach(email => {
@@ -1338,7 +1320,7 @@ class MHStockApp {
         ${photoHtml}
         <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white); margin-bottom: 4px;">${d.name}</div>
         <div style="font-size: 0.75rem; color: var(--cyan-mint); font-weight: 600;">${d.line || 'Monster High'}</div>
-        ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;"><ctrl42> Penteado: ${d.hairstyleDifficulty}</div>` : ''}
+        ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : ''}
         ${d.batchId ? `<div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">📦 Lote: ${d.batchId}</div>` : ''}
         
         <div style="margin-top: 8px; font-size: 0.8rem;">
