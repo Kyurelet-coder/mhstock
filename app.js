@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Pure Local Storage, Permanent Device Nickname, Dual '+' Action
+   Features: Pure Local Storage, Device Nickname, Before/After Restoration Photos
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -18,7 +18,12 @@ class MHStockApp {
     this.wishlist = [];
     this.nickname = null;
     this.currentViewMode = 'grid';
+
+    // Temporary photo variables for forms
     this.currentPhotoBase64 = null;
+    this.currentPhotoBeforeBase64 = null;
+    this.currentPhotoAfterBase64 = null;
+
     this.selectedCardDollId = null;
 
     this.init();
@@ -62,7 +67,6 @@ class MHStockApp {
       this.nickname = savedNick;
       this.applyNickname(savedNick);
     } else {
-      // First time app launch on this device -> Prompt Nickname once!
       setTimeout(() => this.openNicknameModal(), 300);
     }
   }
@@ -117,7 +121,6 @@ class MHStockApp {
         this.dolls = [];
       }
     } else {
-      // First time launch on this device -> Reset fresh state!
       this.dolls = [];
       this.saveState();
     }
@@ -228,8 +231,10 @@ class MHStockApp {
     document.getElementById('btn-add-wishlist').addEventListener('click', () => this.openWishlistModal());
     document.getElementById('btn-download-card').addEventListener('click', () => this.downloadTradingCard());
 
-    // Photo Input change with auto-canvas compression
-    document.getElementById('form-photo-input').addEventListener('change', (e) => this.handlePhotoUpload(e));
+    // Photo Inputs change with auto-canvas compression
+    document.getElementById('form-photo-input').addEventListener('change', (e) => this.handlePhotoUpload(e, 'main'));
+    document.getElementById('form-photo-before').addEventListener('change', (e) => this.handlePhotoUpload(e, 'before'));
+    document.getElementById('form-photo-after').addEventListener('change', (e) => this.handlePhotoUpload(e, 'after'));
 
     // Dynamic visibility of selling price fields based on selected status
     document.getElementById('form-status').addEventListener('change', () => this.onFormStatusChange());
@@ -268,7 +273,7 @@ class MHStockApp {
   }
 
   // --- AUTOMATIC CANVAS COMPRESSION FOR ULTRA-FAST BASE64 STORAGE ---
-  handlePhotoUpload(e) {
+  handlePhotoUpload(e, targetType = 'main') {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -298,13 +303,21 @@ class MHStockApp {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Compress to lightweight 75% JPEG (~40KB)
-      this.currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
 
-      const previewCont = document.getElementById('photo-preview-container');
-      const previewImg = document.getElementById('photo-preview-img');
-      previewImg.src = this.currentPhotoBase64;
-      previewCont.style.display = 'block';
+      if (targetType === 'main') {
+        this.currentPhotoBase64 = compressedBase64;
+        document.getElementById('photo-preview-img').src = compressedBase64;
+        document.getElementById('photo-preview-container').style.display = 'block';
+      } else if (targetType === 'before') {
+        this.currentPhotoBeforeBase64 = compressedBase64;
+        document.getElementById('preview-before-img').src = compressedBase64;
+        document.getElementById('preview-before-cont').style.display = 'block';
+      } else if (targetType === 'after') {
+        this.currentPhotoAfterBase64 = compressedBase64;
+        document.getElementById('preview-after-img').src = compressedBase64;
+        document.getElementById('preview-after-cont').style.display = 'block';
+      }
 
       URL.revokeObjectURL(url);
     };
@@ -468,13 +481,8 @@ class MHStockApp {
     const stock = this.dolls.filter(d => d.status === 'in_stock');
     const sold = this.dolls.filter(d => d.status === 'sold');
 
-    // Total Spent across all purchases
     const totalSpent = this.dolls.reduce((sum, d) => sum + (d.purchasePrice || 0), 0);
-
-    // Total Received across all sales
     const totalReceived = sold.reduce((sum, d) => sum + (d.soldPrice || d.sellingPrice || 0), 0);
-
-    // Net Profit from sold items
     const totalProfit = sold.reduce((sum, d) => sum + ((d.soldPrice || d.sellingPrice || 0) - (d.purchasePrice || 0)), 0);
 
     let totalPersonalEffectiveCost = 0;
@@ -536,7 +544,6 @@ class MHStockApp {
     const stockIndividualItems = items.filter(d => d.status === 'in_stock' && !d.batchId);
     const soldItems = items.filter(d => d.status === 'sold');
 
-    // If user explicitly picked "Coleção Própria" in the dropdown filter:
     if (filterSt === 'personal') {
       if (personalItems.length > 0) {
         const persHeader = document.createElement('div');
@@ -554,7 +561,6 @@ class MHStockApp {
       return;
     }
 
-    // 1. SECTION: 📦 LOTES (Only Resale dolls in batches)
     if (stockLotItems.length > 0) {
       const lotHeader = document.createElement('div');
       lotHeader.className = 'main-section-header pink-accent';
@@ -600,7 +606,6 @@ class MHStockApp {
       });
     }
 
-    // 2. SECTION: 🎴 BONECAS INDIVIDUAIS (Only Resale individual dolls)
     if (stockIndividualItems.length > 0) {
       const indHeader = document.createElement('div');
       indHeader.className = 'main-section-header cyan-accent';
@@ -613,7 +618,6 @@ class MHStockApp {
       container.appendChild(indGrid);
     }
 
-    // 3. SECTION: 🔵 BONECAS VENDIDAS (At the very bottom)
     if (soldItems.length > 0) {
       const soldHeader = document.createElement('div');
       soldHeader.className = 'main-section-header gold-accent';
@@ -647,7 +651,27 @@ class MHStockApp {
       badgeHtml = `<span class="badge badge-stock">🟢 Em Stock</span>`;
     }
 
-    const photoHtml = d.photoUrl ? `<img src="${d.photoUrl}" class="doll-photo-thumb" alt="${d.name}">` : '';
+    // Photo Display: Side-by-side Before & After grid if restoration photos exist, or main photo!
+    let photosHtml = '';
+    if (d.photoBeforeUrl || d.photoAfterUrl) {
+      const beforeImg = d.photoBeforeUrl || d.photoUrl;
+      const afterImg = d.photoAfterUrl || d.photoUrl;
+      photosHtml = `
+        <div class="before-after-grid">
+          <div class="before-after-box">
+            ${beforeImg ? `<img src="${beforeImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.75rem;">Sem foto</div>'}
+            <span class="photo-label-badge badge-label-before">📷 Antes</span>
+          </div>
+          <div class="before-after-box">
+            ${afterImg ? `<img src="${afterImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.75rem;">Sem foto</div>'}
+            <span class="photo-label-badge badge-label-after">✨ Depois</span>
+          </div>
+        </div>
+      `;
+    } else if (d.photoUrl) {
+      photosHtml = `<img src="${d.photoUrl}" class="doll-photo-thumb" alt="${d.name}">`;
+    }
+
     const hairstyleTag = d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 4px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : '';
 
     let metricsHtml = '';
@@ -703,7 +727,7 @@ class MHStockApp {
 
     card.innerHTML = `
       <div>
-        ${photoHtml}
+        ${photosHtml}
         <div class="doll-header">
           <div>
             <div class="doll-char">${d.character || 'Monster High'}</div>
@@ -751,7 +775,9 @@ class MHStockApp {
         eff = `€${effVal.toFixed(2)}`;
       }
 
-      const imgHtml = d.photoUrl ? `<img src="${d.photoUrl}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover;">` : '🧟‍♀️';
+      const imgHtml = d.photoAfterUrl || d.photoUrl
+        ? `<img src="${d.photoAfterUrl || d.photoUrl}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover;">`
+        : '🧟‍♀️';
 
       tr.innerHTML = `
         <td>${d.id}</td>
@@ -888,13 +914,14 @@ class MHStockApp {
     ctx.lineWidth = 4;
     ctx.strokeRect(100, 130, 400, 360);
 
-    if (d.photoUrl) {
+    const cardPhoto = d.photoAfterUrl || d.photoUrl || d.photoBeforeUrl;
+    if (cardPhoto) {
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, 105, 135, 390, 350);
         this._finishTradingCardText(ctx, d);
       };
-      img.src = d.photoUrl;
+      img.src = cardPhoto;
     } else {
       ctx.fillStyle = '#B3A4C4';
       ctx.font = '70px Segoe UI';
@@ -969,12 +996,30 @@ class MHStockApp {
       item.className = 'shelf-doll-item';
       item.onclick = () => this.openDollModal(d.id);
 
-      const photoHtml = d.photoUrl 
-        ? `<img src="${d.photoUrl}" class="shelf-doll-img" alt="${d.name}">`
-        : `<div class="shelf-doll-img-placeholder">🧟‍♀️</div>`;
+      let photosHtml = '';
+      if (d.photoBeforeUrl || d.photoAfterUrl) {
+        const beforeImg = d.photoBeforeUrl || d.photoUrl;
+        const afterImg = d.photoAfterUrl || d.photoUrl;
+        photosHtml = `
+          <div class="before-after-grid" style="margin-bottom: 8px;">
+            <div class="before-after-box" style="height: 110px;">
+              ${beforeImg ? `<img src="${beforeImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.7rem;">Antes</div>'}
+              <span class="photo-label-badge badge-label-before">📷 Antes</span>
+            </div>
+            <div class="before-after-box" style="height: 110px;">
+              ${afterImg ? `<img src="${afterImg}" class="before-after-thumb">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.7rem;">Depois</div>'}
+              <span class="photo-label-badge badge-label-after">✨ Depois</span>
+            </div>
+          </div>
+        `;
+      } else if (d.photoUrl) {
+        photosHtml = `<img src="${d.photoUrl}" class="shelf-doll-img" alt="${d.name}">`;
+      } else {
+        photosHtml = `<div class="shelf-doll-img-placeholder">🧟‍♀️</div>`;
+      }
 
       item.innerHTML = `
-        ${photoHtml}
+        ${photosHtml}
         <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white); margin-bottom: 4px;">${d.name}</div>
         <div style="font-size: 0.75rem; color: var(--cyan-mint); font-weight: 600;">${d.line || 'Monster High'}</div>
         ${d.hairstyleDifficulty ? `<div style="font-size: 0.72rem; color: var(--purple-electric); margin-top: 2px;">💇‍♀️ Penteado: ${d.hairstyleDifficulty}</div>` : ''}
@@ -1106,11 +1151,17 @@ class MHStockApp {
     const modal = document.getElementById('modal-doll');
     const title = document.getElementById('doll-modal-title');
     document.getElementById('edit-doll-id').value = editId || '';
+    
     this.currentPhotoBase64 = null;
+    this.currentPhotoBeforeBase64 = null;
+    this.currentPhotoAfterBase64 = null;
+
     document.getElementById('photo-preview-container').style.display = 'none';
+    document.getElementById('preview-before-cont').style.display = 'none';
+    document.getElementById('preview-after-cont').style.display = 'none';
 
     if (editId) {
-      title.textContent = 'Editar Boneca / Fotografias & Detalhes';
+      title.textContent = 'Editar Boneca / Fotos Antes & Depois';
       const d = this.dolls.find(item => item.id === editId);
       if (d) {
         document.getElementById('form-name').value = d.name || '';
@@ -1129,6 +1180,16 @@ class MHStockApp {
           this.currentPhotoBase64 = d.photoUrl;
           document.getElementById('photo-preview-img').src = d.photoUrl;
           document.getElementById('photo-preview-container').style.display = 'block';
+        }
+        if (d.photoBeforeUrl) {
+          this.currentPhotoBeforeBase64 = d.photoBeforeUrl;
+          document.getElementById('preview-before-img').src = d.photoBeforeUrl;
+          document.getElementById('preview-before-cont').style.display = 'block';
+        }
+        if (d.photoAfterUrl) {
+          this.currentPhotoAfterBase64 = d.photoAfterUrl;
+          document.getElementById('preview-after-img').src = d.photoAfterUrl;
+          document.getElementById('preview-after-cont').style.display = 'block';
         }
       }
     } else {
@@ -1153,9 +1214,16 @@ class MHStockApp {
     const statusVal = document.getElementById('form-status').value;
 
     let finalPhoto = this.currentPhotoBase64;
-    if (!finalPhoto && editId) {
+    let finalPhotoBefore = this.currentPhotoBeforeBase64;
+    let finalPhotoAfter = this.currentPhotoAfterBase64;
+
+    if (editId) {
       const existing = this.dolls.find(d => d.id === editId);
-      if (existing) finalPhoto = existing.photoUrl;
+      if (existing) {
+        if (!finalPhoto) finalPhoto = existing.photoUrl;
+        if (!finalPhotoBefore) finalPhotoBefore = existing.photoBeforeUrl;
+        if (!finalPhotoAfter) finalPhotoAfter = existing.photoAfterUrl;
+      }
     }
 
     const dollData = {
@@ -1170,7 +1238,9 @@ class MHStockApp {
       batchId: document.getElementById('form-batch').value.trim() || null,
       notes: document.getElementById('form-notes').value.trim() || '',
       hairstyleDifficulty: document.getElementById('form-hairstyle').value,
-      photoUrl: finalPhoto || null
+      photoUrl: finalPhoto || null,
+      photoBeforeUrl: finalPhotoBefore || null,
+      photoAfterUrl: finalPhotoAfter || null
     };
 
     if (editId) {
@@ -1295,7 +1365,9 @@ class MHStockApp {
         batchId: batchId,
         notes: `Criado no Lote ${batchId}`,
         hairstyleDifficulty: "Simples 🟢",
-        photoUrl: null
+        photoUrl: null,
+        photoBeforeUrl: null,
+        photoAfterUrl: null
       });
     }
 
@@ -1313,7 +1385,9 @@ class MHStockApp {
         batchId: batchId,
         notes: `Criado no Lote ${batchId}`,
         hairstyleDifficulty: "Simples 🟢",
-        photoUrl: null
+        photoUrl: null,
+        photoBeforeUrl: null,
+        photoAfterUrl: null
       });
     }
 

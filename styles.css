@@ -1039,3 +1039,50 @@ body {
   background: rgba(255, 0, 127, 0.1);
 }
 
+/* Before & After Restoration Photos Styles */
+.before-after-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.before-after-box {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: rgba(13, 8, 20, 0.8);
+  height: 140px;
+}
+
+.before-after-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-label-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.badge-label-before {
+  background: rgba(255, 0, 127, 0.85);
+  color: #FFF;
+  border: 1px solid var(--pink-neon);
+}
+
+.badge-label-after {
+  background: rgba(0, 245, 212, 0.85);
+  color: #0D0814;
+  border: 1px solid var(--cyan-mint);
+}
+
+
