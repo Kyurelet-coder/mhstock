@@ -1,0 +1,17 @@
+{
+  "name": "Monster High Stock & Collection Manager",
+  "short_name": "MH Stock",
+  "description": "Gestão de Stock, Revenda e Coleção Própria Monster High com Calculadora de Amortização",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0D0814",
+  "theme_color": "#FF007F",
+  "icons": [
+    {
+      "src": "app_icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

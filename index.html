@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Monster High Stock & Collection Manager 🧟‍♀️</title>
+  
+  <!-- PWA & Android Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF007F">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/jpeg" href="app_icon.jpg">
+  <link rel="apple-touch-icon" href="app_icon.jpg">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css?v=12">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
+      <div>
+        <h1 class="brand-title">Monster High Stock</h1>
+        <p class="brand-sub">Collection & Resale Manager Pro</p>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button class="btn btn-purple" id="btn-batch-header">📦 Novo Lote</button>
+      <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
+      <button class="btn btn-outline" id="btn-export-csv">📁 CSV</button>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- KPI Summary Dashboard Cards with Total Spent & Total Received -->
+    <section class="kpi-grid">
+      <div class="kpi-card pink">
+        <div class="kpi-title">💳 Total Gasto</div>
+        <div class="kpi-value" id="kpi-spent-total">€0.00</div>
+        <div class="kpi-sub" id="kpi-spent-sub">0 itens comprados</div>
+      </div>
+
+      <div class="kpi-card cyan">
+        <div class="kpi-title">💵 Total Recebido</div>
+        <div class="kpi-value" id="kpi-received-total">€0.00</div>
+        <div class="kpi-sub" id="kpi-received-sub">0 vendas realizadas</div>
+      </div>
+
+      <div class="kpi-card gold">
+        <div class="kpi-title">💰 Lucro Líquido</div>
+        <div class="kpi-value" id="kpi-profit-total">€0.00</div>
+        <div class="kpi-sub" id="kpi-profit-sub">0 itens vendidos</div>
+      </div>
+
+      <div class="kpi-card purple">
+        <div class="kpi-title">🟣 Coleção Própria</div>
+        <div class="kpi-value" id="kpi-personal-count">0 itens</div>
+        <div class="kpi-sub" id="kpi-personal-sub">Custo Ef.: €0.00</div>
+      </div>
+      
+      <div class="kpi-card cyan">
+        <div class="kpi-title">🟢 Em Stock (Revenda)</div>
+        <div class="kpi-value" id="kpi-stock-count">0 itens</div>
+        <div class="kpi-sub" id="kpi-stock-sub">Investimento: €0.00</div>
+      </div>
+      
+      <div class="kpi-card pink">
+        <div class="kpi-title">🧮 Absorção de Custos</div>
+        <div class="kpi-value" id="kpi-amort-pct">0%</div>
+        <div class="kpi-sub">Custo de Coleção Amortizado</div>
+      </div>
+    </section>
+
+    <!-- Main Navigation Tabs -->
+    <section style="display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;">
+      <button class="btn btn-pink" id="tab-btn-stock">🏠 Stock & Revenda</button>
+      <button class="btn btn-outline" id="tab-btn-shelf">🔮 Estante Virtual</button>
+      <button class="btn btn-outline" id="tab-btn-analytics">📊 Gráficos & Analytics</button>
+      <button class="btn btn-outline" id="tab-btn-wishlist">🎯 Wishlist / Caça</button>
+      <button class="btn btn-outline" id="tab-btn-simulator">🧮 Simulador</button>
+    </section>
+
+    <!-- SECTION 1: Stock & Inventory View (Resale & Sold Items Only) -->
+    <div id="section-stock-view">
+      <!-- Search & Filters Toolbar -->
+      <section class="controls-bar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="search-input" placeholder="Pesquisar por boneca, lote #00001, personagem...">
+        </div>
+
+        <div class="filter-group">
+          <select class="select-custom" id="filter-status">
+            <option value="ALL">Todos os Estados</option>
+            <option value="in_stock">🟢 Em Stock</option>
+            <option value="personal">🟣 Coleção Própria</option>
+            <option value="sold">🔵 Vendidos</option>
+          </select>
+
+          <select class="select-custom" id="filter-collection">
+            <option value="ALL">Todas as Linhas</option>
+          </select>
+
+          <div class="view-toggle">
+            <button class="view-btn active" id="view-grid-btn">📱 Cards</button>
+            <button class="view-btn" id="view-table-btn">📋 Tabela</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Divided Sections Render Container -->
+      <section id="dolls-grid-container">
+        <!-- Section 1: LOTES DE REVENDA -->
+        <!-- Section 2: BONECAS INDIVIDUAIS DE REVENDA -->
+        <!-- Section 3: BONECAS VENDIDAS -->
+      </section>
+
+      <!-- Doll Table View (Hidden by default) -->
+      <section class="table-responsive" id="dolls-table-container" style="display: none;">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Foto</th>
+              <th>Nome</th>
+              <th>Personagem</th>
+              <th>Linha</th>
+              <th>Condição</th>
+              <th>Estado</th>
+              <th>Penteado</th>
+              <th>Custo (€)</th>
+              <th>Est. Venda (€)</th>
+              <th>Vendido (€)</th>
+              <th>Custo Ef. (€)</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Dynamic Table Rows Rendered Here -->
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- SECTION 2: Virtual Gothic Shelf Display View (Exclusive Place for Personal Collection Dolls!) -->
+    <div id="section-shelf-view" style="display: none;">
+      <div class="shelf-banner">
+        <h2>🔮 Estante Virtual da Coleção Própria 🔮</h2>
+        <p>Aqui estão as bonecas mantidas na sua coleção. Custo Real Ef.: <strong id="shelf-cost-val" style="color: var(--pink-neon);">€0.00</strong></p>
+      </div>
+
+      <div class="virtual-shelf-container" id="virtual-shelf-grid">
+        <!-- Virtual Shelf Display Cards Rendered Here -->
+      </div>
+    </div>
+
+    <!-- SECTION 3: Analytics & Financial Growth Charts View -->
+    <div id="section-analytics-view" style="display: none;">
+      <div class="analytics-card">
+        <h2 style="font-size: 1.25rem; color: var(--pink-neon); margin-bottom: 6px;">📈 Crescimento da Coleção & Absorção de Custos</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Comparação gráfica em tempo real do custo inicial da coleção versus custo real efetivo pago.</p>
+        
+        <div style="background: rgba(13, 8, 20, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; text-align: center;">
+          <canvas id="chart-networth" width="700" height="240" style="max-width: 100%; height: auto;"></canvas>
+        </div>
+      </div>
+
+      <div class="analytics-card" style="margin-top: 20px;">
+        <h2 style="font-size: 1.25rem; color: var(--gold-accent); margin-bottom: 6px;">🏆 Ranking de Personagens Mais Rentáveis</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">As personagens que geraram mais lucro líquido e amortizações nas suas revendas.</p>
+
+        <div class="leaderboard-grid" id="leaderboard-container">
+          <!-- Dynamic Leaderboard Items -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Wishlist & Hunting List View -->
+    <div id="section-wishlist-view" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 1.2rem; color: var(--pink-neon);">🎯 Lista de Caça / Wishlist Monster High</h2>
+        <button class="btn btn-cyan" id="btn-add-wishlist">➕ Nova Caça</button>
+      </div>
+
+      <div class="wishlist-grid" id="wishlist-container">
+        <!-- Wishlist items rendered here -->
+      </div>
+    </div>
+
+    <!-- SECTION 5: Dynamic Interactive Slider Amortization Card Section -->
+    <div id="section-simulator-view" style="display: none;">
+      <section class="interactive-slider-card" id="slider-section">
+        <h2 class="slider-title">🧮 Simulação Interativa de Absorção de Custos</h2>
+        <p class="slider-desc">Selecione um lote registado ou introduza os dados para simular em tempo real o preço de revenda necessário para a sua boneca ficar a <strong>0.00€</strong>!</p>
+        
+        <!-- Batch & Cost Inputs Bar -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; align-items: flex-end; background: rgba(13, 8, 20, 0.6); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div style="flex: 1; min-width: 200px;">
+            <label class="form-label">Escolher Lote Registado:</label>
+            <select class="select-custom" id="sim-batch-select" style="width: 100%;">
+              <option value="CUSTOM">⚡ Personalizado (Digitar Dados)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Custo Total Lote (€):</label>
+            <input type="number" step="0.01" class="form-control" id="sim-input-cost" value="90.00" style="width: 110px;">
+          </div>
+
+          <div>
+            <label class="form-label">Total Unidades:</label>
+            <input type="number" class="form-control" id="sim-input-tot-units" value="3" style="width: 80px;">
+          </div>
+
+          <div>
+            <label class="form-label">Unidades Coleção 🟣:</label>
+            <input type="number" class="form-control" id="sim-input-pers-units" value="1" style="width: 80px;">
+          </div>
+        </div>
+
+        <div class="slider-controls">
+          <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px;">
+            <span>Preço de Venda Pretendido / Unidade de Revenda:</span>
+            <span id="slider-price-val" style="color: var(--cyan-mint); font-size: 1.15rem; font-weight: 800;">€45.00</span>
+          </div>
+          <input type="range" min="5" max="200" value="45" step="1" class="range-slider" id="resale-slider">
+        </div>
+
+        <div class="slider-outputs">
+          <div class="slider-kpi">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Custo Inicial (Lote)</div>
+            <div class="slider-kpi-val" style="color: var(--text-white);" id="sim-tot-cost">€90.00</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);" id="sim-units-sub">3 unidades (1 Coleção + 2 Revenda)</div>
+          </div>
+          
+          <div class="slider-kpi">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Receita Esperada Revenda</div>
+            <div class="slider-kpi-val" style="color: var(--cyan-mint);" id="sim-rev-val">€90.00</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);" id="sim-resale-sub">2x €45.00</div>
+          </div>
+
+          <div class="slider-kpi">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Custo Efetivo da Sua Boneca</div>
+            <div class="slider-kpi-val amortized-zero" id="sim-eff-cost">€0.00</div>
+            <div style="font-size: 0.7rem; color: var(--pink-neon);" id="sim-status-badge">✨ AMORTIZADA A 100%!</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation (Android Touch Optimized) -->
+  <nav class="mobile-nav">
+    <button class="nav-item active" id="nav-stock">
+      <span class="nav-icon">🏠</span>
+      <span>Stock</span>
+    </button>
+
+    <button class="nav-item" id="nav-shelf">
+      <span class="nav-icon">🔮</span>
+      <span>Estante</span>
+    </button>
+
+    <button class="nav-item" id="nav-analytics">
+      <span class="nav-icon">📊</span>
+      <span>Analytics</span>
+    </button>
+
+    <button class="nav-item" id="nav-wishlist">
+      <span class="nav-icon">🎯</span>
+      <span>Wishlist</span>
+    </button>
+
+    <button class="nav-item" id="nav-add">
+      <span class="nav-icon">➕</span>
+      <span>Adicionar</span>
+    </button>
+  </nav>
+
+  <!-- Modal: Trading Card Instagram/TikTok Generator -->
+  <div class="modal-overlay" id="modal-card">
+    <div class="modal-container" style="max-width: 640px; text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">🖼️ Trading Card Monster High (Instagram / TikTok)</h3>
+        <button class="close-btn" id="close-card-modal">&times;</button>
+      </div>
+
+      <div style="margin: 12px 0;">
+        <canvas id="trading-card-canvas" width="600" height="800" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: 0 0 20px var(--pink-glow);"></canvas>
+      </div>
+
+      <button class="btn btn-pink" id="btn-download-card" style="width: 100%; margin-top: 10px; font-size: 1rem; padding: 12px;">📥 Descarregar Cartão HD (PNG)</button>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Doll -->
+  <div class="modal-overlay" id="modal-doll">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="doll-modal-title">Adicionar Nova Boneca</h3>
+        <button class="close-btn" id="close-doll-modal">&times;</button>
+      </div>
+
+      <form id="doll-form">
+        <input type="hidden" id="edit-doll-id">
+        
+        <div class="form-group">
+          <label class="form-label">Nome da Boneca *</label>
+          <input type="text" class="form-control" id="form-name" placeholder="Ex: Frankie Stein Creeproduction" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">📷 Foto Real da Boneca (Upload / Câmara Android)</label>
+          <input type="file" accept="image/*" class="form-control" id="form-photo-input">
+          <div id="photo-preview-container" style="margin-top: 6px; display: none;">
+            <img id="photo-preview-img" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid var(--pink-neon);">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Personagem</label>
+            <input type="text" class="form-control" id="form-char" placeholder="Ex: Frankie Stein">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Linha/Coleção</label>
+            <select class="form-control" id="form-line"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Condição</label>
+            <select class="form-control" id="form-cond">
+              <option value="NIB">NIB (Na caixa)</option>
+              <option value="Excellent">Excelente</option>
+              <option value="Good">Bom estado</option>
+              <option value="To be restored">Para restaurar (Com restauro)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Estado de Venda</label>
+            <select class="form-control" id="form-status">
+              <option value="in_stock">🟢 Em Stock (Revenda)</option>
+              <option value="personal">🟣 Coleção Própria (0€)</option>
+              <option value="sold">🔵 Vendido</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Preço Compra (€)</label>
+            <input type="number" step="0.01" class="form-control" id="form-purchase" placeholder="30.00">
+          </div>
+
+          <div class="form-group" id="form-sell-group">
+            <label class="form-label">Est. Venda (€)</label>
+            <input type="number" step="0.01" class="form-control" id="form-sell" placeholder="45.00">
+          </div>
+        </div>
+
+        <div class="form-group" id="form-sold-group">
+          <label class="form-label">Preço Vendido (€)</label>
+          <input type="number" step="0.01" class="form-control" id="form-sold" placeholder="0.00">
+        </div>
+
+        <!-- Restoration Diary Section with Hairstyle Difficulty -->
+        <div style="background: rgba(156, 39, 176, 0.1); border: 1px solid var(--purple-electric); padding: 12px; border-radius: 8px; margin: 10px 0;">
+          <label class="form-label" style="color: var(--purple-electric); font-weight: 700;">🧼 Diário de Restauro & Penteado</label>
+          
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label">💇‍♀️ Tipo de Penteado (Dificuldade de Reproduzir):</label>
+            <select class="form-control" id="form-hairstyle">
+              <option value="Simples 🟢">Simples 🟢 (Cabelo liso / solto / fácil)</option>
+              <option value="Médio 🟡">Médio 🟡 (Rabo de cavalo / Franja / Trança)</option>
+              <option value="Difícil 🔴">Difícil 🔴 (Cachos / Canecalon / Penteado de fábrica complexo)</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 6px;">
+            <label><input type="checkbox" id="rest-wash"> Lavagem Cabelo (Boil wash)</label>
+            <label><input type="checkbox" id="rest-outfit"> Roupa / Acessórios</label>
+            <label><input type="checkbox" id="rest-parts"> Mãos / Articulações</label>
+            <label><input type="checkbox" id="rest-make"> Retoque Make/Rosto</label>
+          </div>
+          <input type="number" step="0.01" class="form-control" id="form-restore-cost" placeholder="Custo extra peças/restauro (ex: 5.00€)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ID do Lote / Batch</label>
+          <input type="text" class="form-control" id="form-batch" placeholder="Ex: #00001-Frankie">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notas</label>
+          <input type="text" class="form-control" id="form-notes" placeholder="Detalhes, acessórios em falta...">
+        </div>
+
+        <button type="submit" class="btn btn-pink" style="width: 100%; margin-top: 10px;">💾 Guardar Boneca</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Sell & Fee Calculator -->
+  <div class="modal-overlay" id="modal-sell">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">💰 Registo de Venda & Calculadora de Taxas</h3>
+        <button class="close-btn" id="close-sell-modal">&times;</button>
+      </div>
+
+      <form id="sell-form">
+        <input type="hidden" id="sell-doll-id">
+        
+        <div class="form-group">
+          <label class="form-label">Plataforma de Venda</label>
+          <select class="form-control" id="sell-platform">
+            <option value="vinted">Vinted (Taxa Comprador / Vendedor Grátis)</option>
+            <option value="ebay">eBay (~12.8% Taxa Vendedor)</option>
+            <option value="wallapop">Wallapop (Taxa Comprador / Vendedor Grátis)</option>
+            <option value="olx">OLX / Mão em Mão (Sem Taxas)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Preço Final de Venda (€) *</label>
+          <input type="number" step="0.01" class="form-control" id="sell-price-input" placeholder="45.00" required>
+        </div>
+
+        <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid var(--gold-accent); padding: 12px; border-radius: var(--radius-sm); margin: 12px 0;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--gold-accent);" id="sell-net-preview">
+            💵 Lucro Líquido Estimado: €0.00
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-cyan" style="width: 100%;">Confirmar Venda 🎉</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Batch Purchase Creator with Custom Est. Sell Price Field -->
+  <div class="modal-overlay" id="modal-batch">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">📦 Registar Compra em Lote</h3>
+        <button class="close-btn" id="close-batch-modal">&times;</button>
+      </div>
+
+      <form id="batch-form">
+        <div class="form-group">
+          <label class="form-label">Modelo / Linha da Boneca *</label>
+          <input type="text" class="form-control" id="batch-name" placeholder="Ex: Draculaura Creeproduction" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Total Unidades Compradas</label>
+            <input type="number" class="form-control" id="batch-total-units" value="3" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Unidades Coleção Própria 🟣</label>
+            <input type="number" class="form-control" id="batch-personal-units" value="1" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Custo Total Compra (€)</label>
+            <input type="number" step="0.01" class="form-control" id="batch-total-cost" placeholder="90.00" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Portes / Taxas (€)</label>
+            <input type="number" step="0.01" class="form-control" id="batch-shipping" value="0.00">
+          </div>
+        </div>
+
+        <div class="form-group" style="background: rgba(255, 0, 127, 0.08); border: 1px solid var(--pink-neon); padding: 12px; border-radius: var(--radius-sm); margin-top: 10px;">
+          <label class="form-label" style="color: var(--pink-neon); font-weight: 700;">🏷️ Est. Venda por Unidade de Revenda (€)</label>
+          <input type="number" step="0.01" class="form-control" id="batch-est-sell-price" placeholder="Ex: 50.00 (ou deixe em branco para cálculo automático)">
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Introduza a estimativa de venda que pretende para cada boneca de revenda.</div>
+        </div>
+
+        <div style="background: rgba(0, 245, 212, 0.1); border: 1px solid var(--cyan-mint); padding: 12px; border-radius: var(--radius-sm); margin: 12px 0;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--cyan-mint);" id="batch-calc-preview">
+            🎯 Preço Recom. Revenda: €45.00 / un. (Sua boneca fica a 0.00€!)
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-cyan" style="width: 100%;">🚀 Criar Lote Automaticamente</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Wishlist Add -->
+  <div class="modal-overlay" id="modal-wishlist">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">🎯 Adicionar à Lista de Caça / Wishlist</h3>
+        <button class="close-btn" id="close-wishlist-modal">&times;</button>
+      </div>
+
+      <form id="wishlist-form">
+        <div class="form-group">
+          <label class="form-label">Boneca / Linha Desejada *</label>
+          <input type="text" class="form-control" id="wish-name" placeholder="Ex: Elissabat Frights Camera Action" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Preço Máx. Compra (€)</label>
+            <input type="number" step="0.01" class="form-control" id="wish-max-price" placeholder="40.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Prioridade</label>
+            <select class="form-control" id="wish-priority">
+              <option value="Alta 🔥">Alta 🔥</option>
+              <option value="Média ⭐">Média ⭐</option>
+              <option value="Baixa 💭">Baixa 💭</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-pink" style="width: 100%;">🎯 Guardar na Lista de Caça</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js?v=12"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+    }
+  </script>
+</body>
+</html>
