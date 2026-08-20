@@ -518,8 +518,7 @@ class MHStockApp {
         <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
           <div style="font-size: 3rem; margin-bottom: 10px;">🧟‍♀️</div>
           <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-white); margin-bottom: 6px;">Nenhuma boneca registada</div>
-          <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">Adicione a sua primeira boneca ou registe uma compra em lote para começar!</div>
-          <button class="btn btn-pink" onclick="app.openAddChoiceModal()">➕ Adicionar Primeira Boneca ou Lote</button>
+          <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px auto;">Clique no botão "+ Adicionar" no canto superior direito para registar a sua primeira boneca ou lote!</div>
         </div>
       `;
       return;
