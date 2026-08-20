@@ -1,6 +1,6 @@
 /* ==========================================================================
    MONSTER HIGH STOCK & COLLECTION MANAGER PRO - MOBILE / ANDROID PWA LOGIC
-   Features: Google Login, Firebase Realtime Sync, Email Invitation Sharing
+   Features: Google Login, Firebase Realtime Sync, Email Sharing, Hamburger Drawer
    ========================================================================== */
 
 const COLLECTIONS = [
@@ -169,6 +169,7 @@ class MHStockApp {
         photoURL: "app_icon.jpg",
         uid: "demo_user_123"
       });
+      this.closeDrawer();
       return;
     }
 
@@ -177,6 +178,7 @@ class MHStockApp {
       console.warn("Google Auth Popup error, trying redirect:", error);
       firebase.auth().signInWithRedirect(provider);
     });
+    this.closeDrawer();
   }
 
   logout() {
@@ -184,13 +186,13 @@ class MHStockApp {
       firebase.auth().signOut();
     }
     this.onAuthStateChanged(null);
+    this.closeDrawer();
   }
 
   onAuthStateChanged(user) {
     this.currentUser = user;
 
-    const authBar = document.getElementById('user-auth-bar');
-    const shareBtn = document.getElementById('btn-share-header');
+    const drawerActions = document.getElementById('drawer-user-actions');
     const bannerTitle = document.getElementById('auth-banner-title');
     const bannerSub = document.getElementById('auth-banner-sub');
     const bannerBtn = document.getElementById('btn-banner-login');
@@ -199,31 +201,34 @@ class MHStockApp {
       const avatarSrc = user.photoURL || 'app_icon.jpg';
       const name = user.displayName || user.email.split('@')[0];
 
-      authBar.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,0,127,0.15); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--pink-neon);">
-          <img src="${avatarSrc}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover;">
-          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-white);">👋 ${name}</span>
-          <button class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem; margin-left: 4px;" onclick="app.logout()">🚪 Sair</button>
-        </div>
-      `;
+      if (drawerActions) {
+        drawerActions.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-neon);">
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);">${name}</div>
+              <div style="font-size: 0.72rem; color: var(--cyan-mint);">${user.email}</div>
+            </div>
+          </div>
+          <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--red-accent);" onclick="app.logout()">🚪 Sair da Conta Google</button>
+        `;
+      }
 
-      if (shareBtn) shareBtn.style.display = 'inline-flex';
-
-      bannerTitle.textContent = `🟢 Sessão Sincronizada: ${name} (${user.email})`;
-      bannerSub.textContent = `Os seus telemóveis estão ligados na nuvem em tempo real! Clique em "Partilhar Conta" para convidar por email.`;
+      bannerTitle.textContent = `🟢 Sessão Sincronizada: ${name}`;
+      bannerSub.textContent = `Os seus telemóveis estão ligados em tempo real! Abra o menu lateral ☰ para convidar a sua namorada por email.`;
       bannerBtn.style.display = 'none';
 
       // Auto resolve workspace
       this.setupRealtimeWorkspace(user);
     } else {
-      authBar.innerHTML = `
-        <button class="btn btn-cyan" id="btn-google-login" onclick="app.loginWithGoogle()">🔑 Entrar com o Google</button>
-      `;
-
-      if (shareBtn) shareBtn.style.display = 'none';
+      if (drawerActions) {
+        drawerActions.innerHTML = `
+          <button class="btn btn-cyan" style="width: 100%; font-size: 0.85rem;" onclick="app.loginWithGoogle()">🔑 Entrar com o Google</button>
+        `;
+      }
 
       bannerTitle.textContent = `Modo Convidado (Guardado no dispositivo)`;
-      bannerSub.textContent = `Faça login com a sua conta Google para sincronizar entre telemóveis e partilhar a conta por email!`;
+      bannerSub.textContent = `Abra o menu lateral ☰ e faça login com a conta Google para sincronizar telemóveis e partilhar a conta!`;
       bannerBtn.style.display = 'inline-flex';
     }
   }
@@ -264,9 +269,21 @@ class MHStockApp {
     }
   }
 
+  // Side Navigation Drawer Logic
+  openDrawer() {
+    document.getElementById('sidebar-drawer').classList.add('active');
+    document.getElementById('drawer-overlay').classList.add('active');
+  }
+
+  closeDrawer() {
+    document.getElementById('sidebar-drawer').classList.remove('active');
+    document.getElementById('drawer-overlay').classList.remove('active');
+  }
+
   openShareModal() {
+    this.closeDrawer();
     if (!this.currentUser) {
-      alert("Por favor faça primeiro Login com o Google para poder partilhar a sua conta!");
+      alert("Por favor faça primeiro Login com o Google no menu lateral ☰ para poder partilhar a sua conta!");
       this.loginWithGoogle();
       return;
     }
@@ -421,6 +438,22 @@ class MHStockApp {
   }
 
   bindEvents() {
+    // Android Hamburger Drawer Menu Events
+    document.getElementById('btn-hamburger-menu').addEventListener('click', () => this.openDrawer());
+    document.getElementById('close-drawer-btn').addEventListener('click', () => this.closeDrawer());
+    document.getElementById('drawer-overlay').addEventListener('click', () => this.closeDrawer());
+
+    // Drawer Nav items
+    document.getElementById('drawer-nav-stock').addEventListener('click', () => { this.switchTab('stock', 'nav-stock'); this.closeDrawer(); });
+    document.getElementById('drawer-nav-shelf').addEventListener('click', () => { this.switchTab('shelf', 'nav-shelf'); this.closeDrawer(); });
+    document.getElementById('drawer-nav-analytics').addEventListener('click', () => { this.switchTab('analytics', 'nav-analytics'); this.closeDrawer(); });
+    document.getElementById('drawer-nav-wishlist').addEventListener('click', () => { this.switchTab('wishlist', 'nav-wishlist'); this.closeDrawer(); });
+    document.getElementById('drawer-nav-simulator').addEventListener('click', () => { this.switchTab('simulator'); this.closeDrawer(); });
+
+    document.getElementById('drawer-nav-share').addEventListener('click', () => this.openShareModal());
+    document.getElementById('drawer-nav-batch').addEventListener('click', () => { this.openBatchModal(); this.closeDrawer(); });
+    document.getElementById('drawer-nav-export').addEventListener('click', () => { this.exportCSV(); this.closeDrawer(); });
+
     // Search and filters
     document.getElementById('search-input').addEventListener('input', () => this.render());
     document.getElementById('filter-status').addEventListener('change', () => this.render());
@@ -438,9 +471,7 @@ class MHStockApp {
     document.getElementById('tab-btn-simulator').addEventListener('click', () => this.switchTab('simulator'));
 
     // Auth & Share Modals
-    document.getElementById('btn-google-login').addEventListener('click', () => this.loginWithGoogle());
     document.getElementById('btn-banner-login').addEventListener('click', () => this.loginWithGoogle());
-    document.getElementById('btn-share-header').addEventListener('click', () => this.openShareModal());
     document.getElementById('close-share-modal').addEventListener('click', () => this.closeShareModal());
     document.getElementById('share-form').addEventListener('submit', (e) => this.handleShareSubmit(e));
 
@@ -448,7 +479,6 @@ class MHStockApp {
     document.getElementById('btn-add-header').addEventListener('click', () => this.openDollModal());
     document.getElementById('close-doll-modal').addEventListener('click', () => this.closeDollModal());
     
-    document.getElementById('btn-batch-header').addEventListener('click', () => this.openBatchModal());
     document.getElementById('close-batch-modal').addEventListener('click', () => this.closeBatchModal());
     document.getElementById('close-sell-modal').addEventListener('click', () => this.closeSellModal());
     document.getElementById('close-wishlist-modal').addEventListener('click', () => this.closeWishlistModal());
@@ -456,7 +486,6 @@ class MHStockApp {
 
     document.getElementById('btn-add-wishlist').addEventListener('click', () => this.openWishlistModal());
     document.getElementById('btn-download-card').addEventListener('click', () => this.downloadTradingCard());
-    document.getElementById('btn-export-csv').addEventListener('click', () => this.exportCSV());
 
     // Photo Input change with auto-canvas compression
     document.getElementById('form-photo-input').addEventListener('change', (e) => this.handlePhotoUpload(e));
@@ -588,7 +617,12 @@ class MHStockApp {
 
   switchTab(tabName, navId = null) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.drawer-nav-item').forEach(el => el.classList.remove('active'));
+
     if (navId) document.getElementById(navId).classList.add('active');
+
+    const drawerNav = document.getElementById(`drawer-nav-${tabName}`);
+    if (drawerNav) drawerNav.classList.add('active');
 
     document.getElementById('section-stock-view').style.display = tabName === 'stock' ? 'block' : 'none';
     document.getElementById('section-shelf-view').style.display = tabName === 'shelf' ? 'block' : 'none';

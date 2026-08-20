@@ -26,30 +26,102 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 
-  <!-- App Header -->
+  <!-- Hamburger Side Navigation Drawer Overlay -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+
+  <!-- Gothic Side Navigation Drawer for Android Menu -->
+  <aside class="sidebar-drawer" id="sidebar-drawer">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="app_icon.jpg" class="app-logo" style="width: 36px; height: 36px;">
+        <div>
+          <div style="font-weight: 800; font-size: 1rem; color: var(--pink-neon);">MH Stock Pro</div>
+          <div style="font-size: 0.72rem; color: var(--cyan-mint);">Android Edition</div>
+        </div>
+      </div>
+      <button class="close-btn" id="close-drawer-btn" style="font-size: 1.6rem;">&times;</button>
+    </div>
+
+    <!-- User Profile Card in Drawer -->
+    <div class="drawer-user-card" id="drawer-user-card">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 0.85rem; color: var(--text-muted);">🔑 Acesso & Conta Google</div>
+      </div>
+      <div style="margin-top: 10px;" id="drawer-user-actions">
+        <button class="btn btn-cyan" id="drawer-login-btn" style="width: 100%; font-size: 0.85rem;" onclick="app.loginWithGoogle()">🔑 Entrar com o Google</button>
+      </div>
+    </div>
+
+    <!-- Drawer Navigation Links -->
+    <nav class="drawer-nav">
+      <div class="drawer-section-title">Navegação Principal</div>
+
+      <button class="drawer-nav-item active" id="drawer-nav-stock">
+        <span class="drawer-nav-icon">🏠</span> Stock & Revenda
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-shelf">
+        <span class="drawer-nav-icon">🔮</span> Estante Virtual
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-analytics">
+        <span class="drawer-nav-icon">📊</span> Gráficos & Analytics
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-wishlist">
+        <span class="drawer-nav-icon">🎯</span> Wishlist / Caça
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-simulator">
+        <span class="drawer-nav-icon">🧮</span> Simulador
+      </button>
+
+      <div class="drawer-section-title">Conta & Ações</div>
+
+      <button class="drawer-nav-item" id="drawer-nav-share">
+        <span class="drawer-nav-icon">👥</span> Partilhar Conta por Email
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-batch">
+        <span class="drawer-nav-icon">📦</span> Registar Compra em Lote
+      </button>
+
+      <button class="drawer-nav-item" id="drawer-nav-export">
+        <span class="drawer-nav-icon">📁</span> Exportar Dados (CSV)
+      </button>
+    </nav>
+
+    <div class="drawer-footer">
+      <div>Monster High Stock Manager v18.0</div>
+      <div style="color: var(--cyan-mint); font-weight: 700; margin-top: 2px;">Android Native App</div>
+    </div>
+  </aside>
+
+  <!-- App Header with Hamburger Button on Top Left -->
   <header class="app-header">
-    <div class="brand-container">
-      <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
-      <div>
-        <h1 class="brand-title">Monster High Stock</h1>
-        <p class="brand-sub">Collection & Resale Manager Pro</p>
+    <div class="header-left">
+      <!-- 3 horizontal bars stacked icon for Android Sidebar Drawer -->
+      <button class="hamburger-btn" id="btn-hamburger-menu" aria-label="Abrir Menu Lateral">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+
+      <div class="brand-container">
+        <img src="app_icon.jpg" alt="MH Logo" class="app-logo">
+        <div>
+          <h1 class="brand-title">Monster High Stock</h1>
+          <p class="brand-sub">Android Edition</p>
+        </div>
       </div>
     </div>
     
-    <div class="header-actions">
-      <!-- Google Auth Profile & Shared Workspace Bar -->
-      <div id="user-auth-bar" style="display: flex; align-items: center; gap: 8px;">
-        <button class="btn btn-cyan" id="btn-google-login">🔑 Entrar com o Google</button>
-      </div>
-
-      <button class="btn btn-purple" id="btn-share-header" style="display: none;">👥 Partilhar Conta</button>
-      <button class="btn btn-purple" id="btn-batch-header">📦 Novo Lote</button>
+    <div class="header-right">
       <button class="btn btn-pink" id="btn-add-header">➕ Adicionar</button>
-      <button class="btn btn-outline" id="btn-export-csv">📁 CSV</button>
     </div>
   </header>
 
@@ -599,7 +671,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
